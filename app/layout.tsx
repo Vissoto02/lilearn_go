@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -9,12 +10,29 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  title: {
+    default: "LiLearn — AI Adaptive Study Planner",
+    template: "%s | LiLearn",
+  },
+  description:
+    "AI-powered study planner with adaptive quizzes, personalized study plans, and habit tracking. Study smarter, not harder.",
+  keywords: [
+    "study planner",
+    "AI quiz",
+    "adaptive learning",
+    "habit tracking",
+    "student tools",
+  ],
+  openGraph: {
+    title: "LiLearn — AI Adaptive Study Planner",
+    description:
+      "AI-powered study planner with adaptive quizzes, personalized study plans, and habit tracking.",
+    type: "website",
+  },
 };
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   display: "swap",
   subsets: ["latin"],
 });
@@ -26,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.className} antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -34,6 +52,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
