@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/app/page-header';
 import { WeeklyCalendar, TodayView } from '@/components/app/weekly-calendar';
+import { CalendarWidget } from '@/components/calendar';
+import { UploadPanel } from '@/components/uploads';
 import { EmptyState } from '@/components/app/empty-state';
 import { LoadingSkeleton } from '@/components/app/loading-skeleton';
 import { Button } from '@/components/ui/button';
@@ -275,6 +277,9 @@ export default function PlannerPage() {
                 }}
             />
 
+            {/* Upload & Generate Quiz Section */}
+            <UploadPanel className="mb-2" />
+
             {/* Settings Row */}
             <div className="flex flex-wrap items-center gap-4">
                 <Button
@@ -305,6 +310,7 @@ export default function PlannerPage() {
                 <TabsList>
                     <TabsTrigger value="week">Week View</TabsTrigger>
                     <TabsTrigger value="today">Today</TabsTrigger>
+                    <TabsTrigger value="calendar">Calendar</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="week" className="mt-4">
@@ -332,6 +338,10 @@ export default function PlannerPage() {
                         tasks={tasks}
                         onTaskStatusChange={handleTaskStatusChange}
                     />
+                </TabsContent>
+
+                <TabsContent value="calendar" className="mt-4">
+                    <CalendarWidget variant="planner" />
                 </TabsContent>
             </Tabs>
 

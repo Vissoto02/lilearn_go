@@ -5,7 +5,8 @@ import { PageHeader } from '@/components/app/page-header';
 import { StatCard } from '@/components/app/stat-card';
 import { EmptyState } from '@/components/app/empty-state';
 import { LoadingSkeleton } from '@/components/app/loading-skeleton';
-import { TodayView } from '@/components/app/weekly-calendar';
+import { DashboardCalendar } from '@/components/app/dashboard-calendar';
+import { DashboardUpload } from '@/components/app/dashboard-upload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -100,6 +101,11 @@ export default async function DashboardPage() {
                 description={`Welcome back! Here's your study overview.`}
             />
 
+            {/* Upload & Generate Quiz Section */}
+            <Suspense fallback={<LoadingSkeleton />}>
+                <DashboardUpload />
+            </Suspense>
+
             {/* Quick Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
@@ -129,64 +135,8 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
-                {/* Today's Plan */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg">Today's Tasks</CardTitle>
-                        <Link href="/app/planner">
-                            <Button variant="ghost" size="sm">
-                                View All
-                                <ArrowRight className="ml-1 h-4 w-4" />
-                            </Button>
-                        </Link>
-                    </CardHeader>
-                    <CardContent>
-                        {todayTasks.length === 0 ? (
-                            <EmptyState
-                                icon={Calendar}
-                                title="No tasks for today"
-                                description="Generate a study plan to get personalized tasks"
-                                action={{
-                                    label: 'Create Plan',
-                                    href: '/app/planner',
-                                }}
-                                className="py-8"
-                            />
-                        ) : (
-                            <div className="space-y-3">
-                                {todayTasks.slice(0, 3).map((task) => (
-                                    <div
-                                        key={task.id}
-                                        className="flex items-center gap-3 rounded-lg border border-border p-3"
-                                    >
-                                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${task.status === 'done'
-                                            ? 'bg-green-100 dark:bg-green-900'
-                                            : 'bg-muted'
-                                            }`}>
-                                            {task.status === 'done' ? (
-                                                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                            ) : (
-                                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`font-medium truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : ''
-                                                }`}>
-                                                {task.title}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {task.duration_min} min • {task.topic}
-                                            </p>
-                                        </div>
-                                        <Badge variant={task.status === 'done' ? 'secondary' : 'default'}>
-                                            {task.status}
-                                        </Badge>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                {/* Calendar Widget */}
+                <DashboardCalendar />
 
                 {/* Weak Areas */}
                 <Card>
