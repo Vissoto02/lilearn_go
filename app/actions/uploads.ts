@@ -180,6 +180,9 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         mime_type: upload.mime_type,
         signed_url: signedUrlData.signedUrl,
         options: upload.options as QuizGenerationOptions,
+        // Include Supabase connection details for n8n
+        supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     };
 
     // Call n8n webhook

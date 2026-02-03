@@ -62,6 +62,9 @@ export interface N8nWebhookPayload {
     mime_type: string;
     signed_url: string;
     options: QuizGenerationOptions;
+    // Supabase connection details for n8n to update status
+    supabase_url: string;
+    supabase_service_key: string;
 }
 
 // Supported file extensions
