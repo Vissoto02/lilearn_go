@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { QuizQuestion, QuizChoice } from '@/lib/types';
+import { verifyAnswer } from '@/lib/quiz-generator';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,10 +70,8 @@ export function QuizPlayer({
     const handleSubmit = () => {
         if (!selectedAnswer.trim() || !currentQuestion) return;
 
-        // Check answer (in real app, this would call the server)
-        // For now, we use the answer_hash directly for MCQ (it stores the correct label)
-        const normalizedAnswer = selectedAnswer.toLowerCase().trim();
-        const isCorrect = currentQuestion.answer_hash === normalizedAnswer;
+        // Verify answer using the hash comparison function
+        const isCorrect = verifyAnswer(selectedAnswer, currentQuestion.answer_hash || '');
 
         if (isCorrect) {
             setAnswerState('correct');
