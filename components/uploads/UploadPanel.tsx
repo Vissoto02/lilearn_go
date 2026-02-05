@@ -17,7 +17,6 @@ import {
     retryUpload,
     deleteUpload,
 } from '@/app/actions/uploads';
-import { getTopics, createTopic, type Topic } from '@/app/actions/topics';
 import { UploadItem } from './UploadItem';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,8 +39,6 @@ import {
     Presentation,
     AlertCircle,
     Sparkles,
-    Plus,
-    BookOpen,
 } from 'lucide-react';
 
 interface UploadPanelProps {
@@ -62,21 +59,13 @@ export function UploadPanel({ className }: UploadPanelProps) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Topics state
-    const [topics, setTopics] = useState<Topic[]>([]);
-    const [selectedTopicId, setSelectedTopicId] = useState<string>('');
-    const [showNewTopic, setShowNewTopic] = useState(false);
-    const [newSubject, setNewSubject] = useState('');
-    const [newTopic, setNewTopic] = useState('');
-
     // Quiz options
     const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
     const [questionCount, setQuestionCount] = useState('10');
 
-    // Fetch uploads and topics on mount
+    // Fetch uploads on mount
     useEffect(() => {
         fetchUploads();
-        fetchTopics();
     }, []);
 
     // Poll for processing uploads
@@ -109,43 +98,6 @@ export function UploadPanel({ className }: UploadPanelProps) {
             setUploads(result.data);
         }
         setLoading(false);
-    };
-
-    const fetchTopics = async () => {
-        const result = await getTopics();
-        if (result.data) {
-            setTopics(result.data);
-        }
-    };
-
-    const handleCreateTopic = async () => {
-        if (!newSubject.trim() || !newTopic.trim()) {
-            setError('Please enter both subject and topic');
-            return;
-        }
-
-        const result = await createTopic({
-            subject: newSubject.trim(),
-            topic: newTopic.trim(),
-            difficulty_pref: difficulty,
-        });
-
-        if (result.error) {
-            setError(result.error);
-            return;
-        }
-
-        if (result.data) {
-            setTopics([...topics, result.data]);
-            setSelectedTopicId(result.data.id);
-            setShowNewTopic(false);
-            setNewSubject('');
-            setNewTopic('');
-            toast({
-                title: 'Topic created',
-                description: `${result.data.subject} - ${result.data.topic}`,
-            });
-        }
     };
 
     // File validation
@@ -212,17 +164,11 @@ export function UploadPanel({ className }: UploadPanelProps) {
             const ext = '.' + selectedFile.name.split('.').pop()?.toLowerCase();
             const mimeType = SUPPORTED_EXTENSIONS[ext] as SupportedMimeType;
 
-            // Get selected topic details
-            const selectedTopic = topics.find(t => t.id === selectedTopicId);
-
             // Step 1: Create upload record and get signed URL
             const createResult = await createUpload({
                 original_name: selectedFile.name,
                 mime_type: mimeType,
                 size_bytes: selectedFile.size,
-                topic_id: selectedTopicId || undefined,
-                subject: selectedTopic?.subject,
-                topic: selectedTopic?.topic,
                 options: {
                     difficulty,
                     question_count: parseInt(questionCount),
@@ -367,89 +313,6 @@ export function UploadPanel({ className }: UploadPanelProps) {
                     <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                         <AlertCircle className="h-4 w-4 shrink-0" />
                         <span>{error}</span>
-                    </div>
-                )}
-
-                {/* Topic Selection */}
-                {selectedFile && (
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <Label className="flex items-center gap-2">
-                                <BookOpen className="h-4 w-4" />
-                                Topic (Optional)
-                            </Label>
-                            {!showNewTopic && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowNewTopic(true)}
-                                    className="h-8 gap-1 text-xs"
-                                >
-                                    <Plus className="h-3 w-3" />
-                                    New Topic
-                                </Button>
-                            )}
-                        </div>
-
-                        {showNewTopic ? (
-                            <div className="space-y-3 rounded-lg border p-3">
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs">Subject</Label>
-                                        <Input
-                                            placeholder="e.g., Mathematics"
-                                            value={newSubject}
-                                            onChange={(e) => setNewSubject(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs">Topic</Label>
-                                        <Input
-                                            placeholder="e.g., Calculus"
-                                            value={newTopic}
-                                            onChange={(e) => setNewTopic(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={handleCreateTopic}
-                                        className="flex-1"
-                                    >
-                                        Create Topic
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                            setShowNewTopic(false);
-                                            setNewSubject('');
-                                            setNewTopic('');
-                                        }}
-                                    >
-                                        Cancel
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <Select value={selectedTopicId} onValueChange={setSelectedTopicId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a topic or skip" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="">No topic (skip)</SelectItem>
-                                    {topics.map((topic) => (
-                                        <SelectItem key={topic.id} value={topic.id}>
-                                            {topic.subject} - {topic.topic}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
                     </div>
                 )}
 
