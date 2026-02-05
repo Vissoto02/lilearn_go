@@ -22,6 +22,7 @@ import { TZDate } from '@date-fns/tz';
 
 export const TIMEZONE = 'Asia/Kuala_Lumpur';
 
+
 /**
  * Get current time in Malaysia timezone
  */

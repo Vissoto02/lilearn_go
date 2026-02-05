@@ -12,6 +12,9 @@ When a file is uploaded, your app sends this JSON to n8n:
   "file_path": "user-id/upload-id/file.pdf",
   "mime_type": "application/pdf",
   "signed_url": "https://bkmttsciyftuhdwrwppp.supabase.co/storage/v1/object/sign/...",
+  "topic_id": "topic-uuid-or-null",
+  "subject": "Mathematics",
+  "topic": "Calculus",
   "options": {
     "difficulty": "medium",
     "question_count": 10,
@@ -33,6 +36,9 @@ In your n8n workflow nodes, use these expressions:
 | File Name | `{{ $json.file_name }}` | `document.pdf` |
 | File Path | `{{ $json.file_path }}` | `user-id/upload-id/file.pdf` |
 | Signed URL | `{{ $json.signed_url }}` | Full download URL |
+| Topic ID | `{{ $json.topic_id }}` | `topic-uuid` or `null` |
+| Subject | `{{ $json.subject }}` | `Mathematics` or `null` |
+| Topic | `{{ $json.topic }}` | `Calculus` or `null` |
 | Supabase URL | `{{ $json.supabase_url }}` | `https://...supabase.co` |
 | Service Key | `{{ $json.supabase_service_key }}` | `eyJhbG...` |
 | Difficulty | `{{ $json.options.difficulty }}` | `medium` |
@@ -97,12 +103,17 @@ Prefer: return=representation
 ```json
 {
   "user_id": "{{ $json.user_id }}",
+  "subject": "{{ $json.subject || 'General' }}",
+  "topic": "{{ $json.topic || 'Mixed Topics' }}",
   "title": "Quiz from {{ $json.file_name }}",
   "description": "Auto-generated quiz",
   "difficulty": "{{ $json.options.difficulty }}",
+  "upload_id": "{{ $json.upload_id }}",
   "questions": []
 }
 ```
+
+**Note:** The `subject` and `topic` fields use the values from the upload if the user specified them, otherwise they default to 'General' and 'Mixed Topics'.
 
 ## Troubleshooting
 

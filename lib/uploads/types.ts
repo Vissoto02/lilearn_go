@@ -23,6 +23,9 @@ export interface Upload {
     status: UploadStatus;
     error_message: string | null;
     quiz_id: string | null;
+    topic_id: string | null;
+    subject: string | null;
+    topic: string | null;
     options: QuizGenerationOptions;
     created_at: string;
     updated_at: string;
@@ -33,6 +36,9 @@ export interface CreateUploadInput {
     original_name: string;
     mime_type: SupportedMimeType;
     size_bytes: number;
+    topic_id?: string;
+    subject?: string;
+    topic?: string;
     options?: Partial<QuizGenerationOptions>;
 }
 
@@ -61,6 +67,9 @@ export interface N8nWebhookPayload {
     file_path: string;
     mime_type: string;
     signed_url: string;
+    topic_id: string | null;
+    subject: string | null;
+    topic: string | null;
     options: QuizGenerationOptions;
     // Supabase connection details for n8n to update status
     supabase_url: string;
