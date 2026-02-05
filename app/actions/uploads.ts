@@ -92,6 +92,9 @@ export async function createUpload(
             original_name: input.original_name,
             mime_type: input.mime_type,
             size_bytes: input.size_bytes,
+            topic_id: input.topic_id || null,
+            subject: input.subject || null,
+            topic: input.topic || null,
             status: 'pending',
             options,
         });
@@ -179,6 +182,9 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         file_path: upload.file_path,
         mime_type: upload.mime_type,
         signed_url: signedUrlData.signedUrl,
+        topic_id: upload.topic_id,
+        subject: upload.subject,
+        topic: upload.topic,
         options: upload.options as QuizGenerationOptions,
         // Include Supabase connection details for n8n
         supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
