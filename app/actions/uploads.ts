@@ -238,6 +238,7 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         signed_url: signedUrlData.signedUrl,
         options: upload.options as QuizGenerationOptions,
         topic_id: topicRecord.id,
+        topic_name: topic,
         quiz_id: quiz.id,
         // Include Supabase connection details for n8n
         supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
