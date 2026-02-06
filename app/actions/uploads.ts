@@ -171,6 +171,54 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         return { error: 'Failed to generate download URL' };
     }
 
+    // Create topic record first (using file name as topic name)
+    const topicName = upload.original_name.replace(/\.[^/.]+$/, ''); // Remove extension
+    const { data: topic, error: topicError } = await supabase
+        .from('topics')
+        .insert({
+            user_id: upload.user_id,
+            name: topicName,
+            description: `Generated from ${upload.original_name}`,
+        })
+        .select()
+        .single();
+
+    if (topicError || !topic) {
+        await supabase
+            .from('uploads')
+            .update({ status: 'failed', error_message: 'Failed to create topic' })
+            .eq('id', uploadId);
+        return { error: 'Failed to create topic' };
+    }
+
+    // Create quiz record (initially empty, will be populated by n8n)
+    const { data: quiz, error: quizError } = await supabase
+        .from('quizzes')
+        .insert({
+            user_id: upload.user_id,
+            topic_id: topic.id,
+            title: `Quiz: ${topicName}`,
+            description: `Auto-generated quiz from ${upload.original_name}`,
+            difficulty: upload.options.difficulty,
+            status: 'draft', // Will be updated by n8n when questions are added
+        })
+        .select()
+        .single();
+
+    if (quizError || !quiz) {
+        await supabase
+            .from('uploads')
+            .update({ status: 'failed', error_message: 'Failed to create quiz' })
+            .eq('id', uploadId);
+        return { error: 'Failed to create quiz' };
+    }
+
+    // Update upload record with quiz_id
+    await supabase
+        .from('uploads')
+        .update({ quiz_id: quiz.id })
+        .eq('id', uploadId);
+
     // Prepare n8n webhook payload - matches ingest_upload_webhook expectations
     const webhookPayload: N8nWebhookPayload = {
         upload_id: upload.id,
@@ -180,6 +228,8 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         mime_type: upload.mime_type,
         signed_url: signedUrlData.signedUrl,
         options: upload.options as QuizGenerationOptions,
+        topic_id: topic.id,
+        quiz_id: quiz.id,
         // Include Supabase connection details for n8n
         supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
