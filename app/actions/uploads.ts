@@ -171,24 +171,34 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         return { error: 'Failed to generate download URL' };
     }
 
-    // Create topic record first (using file name as topic name)
-    const topicName = upload.original_name.replace(/\.[^/.]+$/, ''); // Remove extension
-    const { data: topic, error: topicError } = await supabase
+    // Extract subject and topic from filename
+    // Example: "Topic 9 DIT1233 IP SECURITY.pdf" -> subject: "DIT1233", topic: "Topic 9 IP SECURITY"
+    const fileNameWithoutExt = upload.original_name.replace(/\.[^/.]+$/, ''); // Remove extension
+
+    // Try to extract subject code (e.g., DIT1233, CSC101, etc.)
+    const subjectMatch = fileNameWithoutExt.match(/\b[A-Z]{2,4}\d{3,4}\b/);
+    const subject = subjectMatch ? subjectMatch[0] : 'General';
+    const topic = fileNameWithoutExt;
+
+    // Create topic record first
+    const { data: topicRecord, error: topicError } = await supabase
         .from('topics')
         .insert({
             user_id: upload.user_id,
-            name: topicName,
-            description: `Generated from ${upload.original_name}`,
+            subject: subject,
+            topic: topic,
+            difficulty_pref: upload.options.difficulty,
         })
         .select()
         .single();
 
-    if (topicError || !topic) {
+    if (topicError || !topicRecord) {
+        console.error('Failed to create topic:', topicError);
         await supabase
             .from('uploads')
-            .update({ status: 'failed', error_message: 'Failed to create topic' })
+            .update({ status: 'failed', error_message: `Failed to create topic: ${topicError?.message || 'Unknown error'}` })
             .eq('id', uploadId);
-        return { error: 'Failed to create topic' };
+        return { error: `Failed to create topic: ${topicError?.message || 'Unknown error'}` };
     }
 
     // Create quiz record (initially empty, will be populated by n8n)
@@ -196,21 +206,20 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         .from('quizzes')
         .insert({
             user_id: upload.user_id,
-            topic_id: topic.id,
-            title: `Quiz: ${topicName}`,
-            description: `Auto-generated quiz from ${upload.original_name}`,
+            subject: subject,
+            topic: topic,
             difficulty: upload.options.difficulty,
-            status: 'draft', // Will be updated by n8n when questions are added
         })
         .select()
         .single();
 
     if (quizError || !quiz) {
+        console.error('Failed to create quiz:', quizError);
         await supabase
             .from('uploads')
-            .update({ status: 'failed', error_message: 'Failed to create quiz' })
+            .update({ status: 'failed', error_message: `Failed to create quiz: ${quizError?.message || 'Unknown error'}` })
             .eq('id', uploadId);
-        return { error: 'Failed to create quiz' };
+        return { error: `Failed to create quiz: ${quizError?.message || 'Unknown error'}` };
     }
 
     // Update upload record with quiz_id
@@ -228,7 +237,7 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         mime_type: upload.mime_type,
         signed_url: signedUrlData.signedUrl,
         options: upload.options as QuizGenerationOptions,
-        topic_id: topic.id,
+        topic_id: topicRecord.id,
         quiz_id: quiz.id,
         // Include Supabase connection details for n8n
         supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
