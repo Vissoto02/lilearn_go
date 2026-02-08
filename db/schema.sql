@@ -46,8 +46,11 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   quiz_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('mcq', 'short_answer')),
   prompt TEXT NOT NULL,
-  choices JSONB, -- For MCQ: [{label: 'A', text: '...'}, ...]
-  answer_hash TEXT, -- Hashed correct answer for verification
+  -- Choices stored as JSONB in one of two formats:
+  -- New (from n8n): ["answer text A", "answer text B", "answer text C", "answer text D"]
+  -- Legacy: [{"label": "A", "text": "answer A"}, {"label": "B", "text": "answer B"}, ...]
+  choices JSONB,
+  answer_hash TEXT, -- For verification: lowercase letter 'a', 'b', 'c', 'd' or hashed answer
   hint TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -53,6 +53,24 @@ export function QuizPlayer({
     const progress = ((currentIndex + 1) / questions.length) * 100;
     const isMCQ = currentQuestion?.type === 'mcq';
 
+    // Helper: Normalize choices to standard format
+    // Supports both new format: ["text A", "text B", ...] and legacy: [{label: "A", text: "..."}, ...]
+    const getNormalizedChoices = (choices: string[] | QuizChoice[] | null): QuizChoice[] => {
+        if (!choices || choices.length === 0) return [];
+
+        // Check if it's already in QuizChoice format
+        if (typeof choices[0] === 'object' && 'label' in choices[0]) {
+            return choices as QuizChoice[];
+        }
+
+        // Convert string[] to QuizChoice[]
+        return (choices as string[]).map((text, idx) => ({
+            label: ['A', 'B', 'C', 'D'][idx] || String.fromCharCode(65 + idx),
+            text: text
+        }));
+    };
+
+
     // Reset state when moving to next question
     useEffect(() => {
         setSelectedAnswer('');
@@ -181,7 +199,7 @@ export function QuizPlayer({
                 {/* MCQ Options */}
                 {isMCQ && currentQuestion.choices && (
                     <div className="space-y-2">
-                        {currentQuestion.choices.map((choice: QuizChoice) => (
+                        {getNormalizedChoices(currentQuestion.choices).map((choice: QuizChoice) => (
                             <button
                                 key={choice.label}
                                 onClick={() => handleAnswerSelect(choice.label.toLowerCase())}

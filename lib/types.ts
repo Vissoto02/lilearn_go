@@ -50,9 +50,13 @@ export interface QuizQuestion {
     quiz_id: string;
     type: QuestionType;
     prompt: string;
-    choices: QuizChoice[] | null;
+    // Support both formats:
+    // - New: ["answer text A", "answer text B", "answer text C", "answer text D"]
+    // - Legacy: [{label: "A", text: "..."}, {label: "B", text: "..."}, ...]
+    choices: string[] | QuizChoice[] | null;
     answer_hash: string | null;
     hint: string | null;
+    correct_label?: string | null; // 'A', 'B', 'C', or 'D' - added via uploads_schema.sql
     created_at: string;
 }
 

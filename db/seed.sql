@@ -50,16 +50,16 @@ BEGIN
   VALUES (gen_random_uuid(), test_user_id, 'Mathematics', 'Algebra', 'medium')
   RETURNING id INTO test_quiz_id;
 
-  -- Seed quiz questions
-  INSERT INTO quiz_questions (quiz_id, type, prompt, choices, answer_hash, hint) VALUES
+  -- Seed quiz questions (using new simplified format)
+  INSERT INTO quiz_questions (quiz_id, type, prompt, choices, answer_hash, correct_label, hint) VALUES
     (test_quiz_id, 'mcq', 'What is the value of x in: 2x + 5 = 15?', 
-     '[{"label": "A", "text": "3"}, {"label": "B", "text": "5"}, {"label": "C", "text": "7"}, {"label": "D", "text": "10"}]',
-     'b', 'Subtract 5 from both sides first'),
+     '["3", "5", "7", "10"]',
+     'b', 'B', 'Subtract 5 from both sides first'),
     (test_quiz_id, 'mcq', 'Simplify: 3(x + 2) - x', 
-     '[{"label": "A", "text": "2x + 6"}, {"label": "B", "text": "4x + 6"}, {"label": "C", "text": "2x + 2"}, {"label": "D", "text": "4x + 2"}]',
-     'a', 'Distribute first, then combine like terms'),
+     '["2x + 6", "4x + 6", "2x + 2", "4x + 2"]',
+     'a', 'A', 'Distribute first, then combine like terms'),
     (test_quiz_id, 'short_answer', 'If y = 2x - 3, what is y when x = 4?', 
-     NULL, '5', 'Substitute x = 4 into the equation');
+     NULL, '5', NULL, 'Substitute x = 4 into the equation');
 
   -- Seed some quiz attempts with varying success
   INSERT INTO quiz_attempts (user_id, quiz_id, question_id, is_correct, attempts_count, time_spent_sec)
