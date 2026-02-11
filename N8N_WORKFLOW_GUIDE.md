@@ -1,4 +1,15 @@
-# n8n Workflow Setup Guide
+# n8n Workflow Setup Guide (Updated)
+
+## ⚠️ IMPORTANT CHANGE
+
+**The app NO LONGER creates the quiz record upfront.** Your n8n workflow must now:
+1. Create the quiz record
+2. Insert questions into `quiz_questions`
+3. Update the upload record with the `quiz_id`
+
+This prevents empty quizzes from appearing in the quiz list before questions are ready.
+
+---
 
 ## Webhook Payload from Your App
 
@@ -17,66 +28,21 @@ When a file is uploaded, your app sends this JSON to n8n:
     "question_count": 10,
     "question_types": ["mcq"]
   },
+  "topic_id": "topic-uuid",
+  "topic_name": "Topic 2 DIT1233 NETWORK SECURITY",
+  "quiz_id": "",  // ← EMPTY! n8n must create the quiz
   "supabase_url": "https://bkmttsciyftuhdwrwppp.supabase.co",
   "supabase_service_key": "eyJhbG..."
 }
 ```
 
-## How to Access These Values in n8n
+---
 
-In your n8n workflow nodes, use these expressions:
+## Required n8n Workflow Steps
 
-| Field | n8n Expression | Example Value |
-|-------|---------------|---------------|
-| Upload ID | `{{ $json.upload_id }}` | `abc-123-xyz` |
-| User ID | `{{ $json.user_id }}` | `user-uuid` |
-| File Name | `{{ $json.file_name }}` | `document.pdf` |
-| File Path | `{{ $json.file_path }}` | `user-id/upload-id/file.pdf` |
-| Signed URL | `{{ $json.signed_url }}` | Full download URL |
-| Supabase URL | `{{ $json.supabase_url }}` | `https://...supabase.co` |
-| Service Key | `{{ $json.supabase_service_key }}` | `eyJhbG...` |
-| Difficulty | `{{ $json.options.difficulty }}` | `medium` |
-| Question Count | `{{ $json.options.question_count }}` | `10` |
+### Step 1: Create Quiz Record
 
-## Common n8n Node Configurations
-
-### 1. HTTP Request - Update Upload Status
-
-**Method:** `PATCH`
-
-**URL:**
-```
-{{ $json.supabase_url }}/rest/v1/uploads?id=eq.{{ $json.upload_id }}
-```
-
-**Headers:**
-```
-Authorization: Bearer {{ $json.supabase_service_key }}
-apikey: {{ $json.supabase_service_key }}
-Content-Type: application/json
-Prefer: return=minimal
-```
-
-**Body (JSON):**
-```json
-{
-  "status": "processing",
-  "updated_at": "{{ $now.toISO() }}"
-}
-```
-
-### 2. HTTP Request - Download File
-
-**Method:** `GET`
-
-**URL:**
-```
-{{ $json.signed_url }}
-```
-
-**Response Format:** `File`
-
-### 3. HTTP Request - Create Quiz
+**HTTP Request Node**
 
 **Method:** `POST`
 
@@ -97,51 +63,170 @@ Prefer: return=representation
 ```json
 {
   "user_id": "{{ $json.user_id }}",
-  "title": "Quiz from {{ $json.file_name }}",
-  "description": "Auto-generated quiz",
+  "subject": "DIT1233",
+  "topic": "{{ $json.topic_name }}",
   "difficulty": "{{ $json.options.difficulty }}",
-  "questions": []
+  "upload_id": "{{ $json.upload_id }}"
 }
 ```
 
-## Troubleshooting
+**Important:** Set this node to output `First Item` and save the response as `quiz_data` or similar.
 
-### Error: "Cannot read property 'upload_id'"
-- **Cause:** The webhook node isn't receiving data
-- **Fix:** Make sure your app's `N8N_WEBHOOK_URL` is correct and the workflow is activated (or open in editor for test URL)
+---
 
-### Error: "Invalid URL: /rest/v1/uploads..."
-- **Cause:** `supabase_url` is empty
-- **Fix:** Make sure `NEXT_PUBLIC_SUPABASE_URL` is set in your app's environment variables
+### Step 2: Generate Questions with AI
 
-### Error: 401 Unauthorized on Supabase requests
-- **Cause:** Missing or invalid service role key
-- **Fix:** Make sure `SUPABASE_SERVICE_ROLE_KEY` is set in your app's environment variables
+Use your AI node (Gemini, OpenAI, etc.) to generate questions based on the file content.
 
-### Red text in n8n expressions
-- **Cause:** The field doesn't exist in the previous node's output
-- **Fix:** Check the previous node's output data to see what fields are actually available
+**Expected AI Output Format:**
+```json
+{
+  "questions": [
+    {
+      "type": "mcq",
+      "prompt": "What is network security?",
+      "choices": ["Answer A", "Answer B", "Answer C", "Answer D"],
+      "correct_label": "A",
+      "hint": "Think about protecting data"
+    }
+  ]
+}
+```
+
+---
+
+### Step 3: Insert Questions into Database
+
+**HTTP Request Node (Loop over questions)**
+
+**Method:** `POST`
+
+**URL:**
+```
+{{ $json.supabase_url }}/rest/v1/quiz_questions
+```
+
+**Headers:**
+```
+Authorization: Bearer {{ $json.supabase_service_key }}
+apikey: {{ $json.supabase_service_key }}
+Content-Type: application/json
+Prefer: return=minimal
+```
+
+**Body (JSON):**
+```json
+{
+  "quiz_id": "{{ $node['Create Quiz Record'].json.id }}",
+  "type": "{{ $json.type }}",
+  "prompt": "{{ $json.prompt }}",
+  "choices": {{ $json.choices }},
+  "correct_label": "{{ $json.correct_label }}",
+  "answer_hash": "{{ $json.correct_label.toLowerCase() }}",
+  "hint": "{{ $json.hint }}"
+}
+```
+
+**Note:** You may need a **Split In Batches** or **Loop** node to insert each question separately.
+
+---
+
+### Step 4: Update Upload Record with Quiz ID
+
+**HTTP Request Node**
+
+**Method:** `PATCH`
+
+**URL:**
+```
+{{ $json.supabase_url }}/rest/v1/uploads?id=eq.{{ $json.upload_id }}
+```
+
+**Headers:**
+```
+Authorization: Bearer {{ $json.supabase_service_key }}
+apikey: {{ $json.supabase_service_key }}
+Content-Type: application/json
+Prefer: return=minimal
+```
+
+**Body (JSON):**
+```json
+{
+  "quiz_id": "{{ $node['Create Quiz Record'].json.id }}",
+  "status": "completed"
+}
+```
+
+---
+
+## Complete Workflow Structure
+
+```
+┌─────────────────────┐
+│  Webhook Trigger    │
+│  (receives payload) │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Create Quiz Record │ ← NEW! Must happen first
+│  (POST /quizzes)    │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Download File      │
+│  (GET signed_url)   │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Extract Text       │
+│  (PDF/DOCX parser)  │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Generate Questions │
+│  (AI/Gemini node)   │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Insert Questions   │ ← Loop over each question
+│  (POST /quiz_ques)  │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Update Upload      │ ← Link quiz_id + set status=completed
+│  (PATCH /uploads)   │
+└─────────────────────┘
+```
+
+---
 
 ## Testing Your Workflow
 
-1. **Open your workflow in n8n editor** (for test URL)
+1. **Delete any existing empty quizzes** from your Supabase `quizzes` table
 2. **Upload a file** through your app
-3. **Check the webhook node** - you should see the incoming data
-4. **Step through each node** - verify the data is flowing correctly
-5. **Check your Supabase database** - verify the status updates are working
+3. **Check n8n execution** - verify the quiz is created FIRST
+4. **Check Supabase** - quiz should only appear after questions are inserted
+5. **Open the quiz page** - quiz should have questions and be playable
 
-## Example: Complete Status Update Flow
+---
 
-```
-Webhook Trigger
-  ↓ (receives upload data)
-Set Variables (optional - for cleaner expressions)
-  ↓
-HTTP Request - Download File from signed_url
-  ↓
-[Your AI Processing Nodes]
-  ↓
-HTTP Request - Update Status to "completed"
-  ↓
-HTTP Request - Link quiz_id to upload
-```
+## Common Errors
+
+### "This quiz has no questions yet"
+- **Cause:** The quiz was created but questions weren't inserted
+- **Fix:** Check the "Insert Questions" node - make sure it's looping over all questions
+
+### Quiz doesn't appear in the list
+- **Cause:** n8n workflow failed before creating the quiz
+- **Fix:** Check n8n execution logs and Supabase upload status
+
+### "Cannot read property 'id' of undefined"
+- **Cause:** The "Create Quiz Record" node didn't return the quiz ID
+- **Fix:** Make sure the node has `Prefer: return=representation` header

@@ -201,32 +201,8 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         return { error: `Failed to create topic: ${topicError?.message || 'Unknown error'}` };
     }
 
-    // Create quiz record (initially empty, will be populated by n8n)
-    const { data: quiz, error: quizError } = await supabase
-        .from('quizzes')
-        .insert({
-            user_id: upload.user_id,
-            subject: subject,
-            topic: topic,
-            difficulty: upload.options.difficulty,
-        })
-        .select()
-        .single();
-
-    if (quizError || !quiz) {
-        console.error('Failed to create quiz:', quizError);
-        await supabase
-            .from('uploads')
-            .update({ status: 'failed', error_message: `Failed to create quiz: ${quizError?.message || 'Unknown error'}` })
-            .eq('id', uploadId);
-        return { error: `Failed to create quiz: ${quizError?.message || 'Unknown error'}` };
-    }
-
-    // Update upload record with quiz_id
-    await supabase
-        .from('uploads')
-        .update({ quiz_id: quiz.id })
-        .eq('id', uploadId);
+    // NOTE: We do NOT create the quiz record here anymore.
+    // n8n will create it when questions are ready, so empty quizzes don't appear in the list.
 
     // Prepare n8n webhook payload - matches ingest_upload_webhook expectations
     const webhookPayload: N8nWebhookPayload = {
@@ -239,7 +215,7 @@ export async function confirmUpload(uploadId: string): Promise<UploadActionResul
         options: upload.options as QuizGenerationOptions,
         topic_id: topicRecord.id,
         topic_name: topic,
-        quiz_id: quiz.id,
+        quiz_id: '', // n8n will create the quiz and update the upload record
         // Include Supabase connection details for n8n
         supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
