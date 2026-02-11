@@ -141,9 +141,9 @@ export function UploadItem({ upload, onRetry, onDelete }: UploadItemProps) {
             <div className="flex shrink-0 items-center gap-2">
                 {upload.status === 'completed' && upload.quiz_id && (
                     <Link href={`/app/quiz?id=${upload.quiz_id}`}>
-                        <Button size="sm" variant="outline" className="gap-1">
+                        <Button size="sm" className="gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-sm shadow-indigo-500/20">
                             <ExternalLink className="h-4 w-4" />
-                            View Quiz
+                            Take Quiz Now
                         </Button>
                     </Link>
                 )}

@@ -311,3 +311,9 @@ If you're stuck:
 **Good luck!** 🚀
 
 Once all checkboxes are ticked, you're done! 🎉
+
+
+step to do next,
+the quiz section have a problem where the quiz is not showing up, i can see the quiz in the database but it is not showing up in the frontend and it showing alot of other subject and topic which i already deleted in the supabase 
+
+to be ablt for user to upload their schedule which will be the basis for the quiz generation
