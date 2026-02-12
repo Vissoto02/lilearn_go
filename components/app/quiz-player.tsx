@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { QuizQuestion, QuizChoice } from '@/lib/types';
-import { verifyAnswer } from '@/lib/quiz-generator';
+
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,8 +88,11 @@ export function QuizPlayer({
     const handleSubmit = () => {
         if (!selectedAnswer.trim() || !currentQuestion) return;
 
-        // Verify answer using the hash comparison function
-        const isCorrect = verifyAnswer(selectedAnswer, currentQuestion.answer_hash || '');
+        // Compare answer: support both plain label ("a"/"b"/"c"/"d") and correct_label ("A"/"B"/"C"/"D")
+        const userAnswer = selectedAnswer.toLowerCase().trim();
+        const correctHash = (currentQuestion.answer_hash || '').toLowerCase().trim();
+        const correctLabel = (currentQuestion.correct_label || '').toLowerCase().trim();
+        const isCorrect = userAnswer === correctHash || userAnswer === correctLabel;
 
         if (isCorrect) {
             setAnswerState('correct');

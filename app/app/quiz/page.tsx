@@ -330,7 +330,15 @@ function QuizPageContent() {
             time_spent_sec: r.timeSpentSec,
         }));
 
-        await supabase.from('quiz_attempts').insert(attemptsToInsert);
+        const { error: insertError } = await supabase.from('quiz_attempts').insert(attemptsToInsert);
+        if (insertError) {
+            console.error('Failed to save quiz attempts:', insertError);
+            toast({
+                title: 'Warning',
+                description: 'Quiz results could not be saved. ' + insertError.message,
+                variant: 'destructive',
+            });
+        }
 
         setPageView('complete');
 
