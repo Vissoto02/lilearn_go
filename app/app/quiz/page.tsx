@@ -266,9 +266,10 @@ function QuizPageContent() {
         setCurrentQuestions(questions || []);
 
         // Group attempts into sessions by time gap
-        // If there's more than 2 minutes between consecutive records, it's a new session
+        // Records from one quiz completion are inserted as a batch (same timestamp),
+        // so a 30-second gap cleanly separates different retakes
         if (attempts && attempts.length > 0 && questions) {
-            const SESSION_GAP_MS = 2 * 60 * 1000; // 2 minutes
+            const SESSION_GAP_MS = 30 * 1000; // 30 seconds
             const groups: AttemptGroup[] = [];
             let currentGroup: QuizAttempt[] = [attempts[0]];
             let groupIndex = 1;
