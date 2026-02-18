@@ -265,17 +265,20 @@ function QuizPageContent() {
 
         setCurrentQuestions(questions || []);
 
-        // Group attempts into "sessions" (each set of questions answered together)
+        // Group attempts into sessions by time gap
+        // If there's more than 2 minutes between consecutive records, it's a new session
         if (attempts && attempts.length > 0 && questions) {
-            const totalQuestions = questions.length;
+            const SESSION_GAP_MS = 2 * 60 * 1000; // 2 minutes
             const groups: AttemptGroup[] = [];
-            let currentGroup: QuizAttempt[] = [];
+            let currentGroup: QuizAttempt[] = [attempts[0]];
             let groupIndex = 1;
 
-            // Group attempts by sets of totalQuestions (each full quiz attempt)
-            attempts.forEach((attempt, idx) => {
-                currentGroup.push(attempt);
-                if (currentGroup.length === totalQuestions || idx === attempts.length - 1) {
+            for (let i = 1; i < attempts.length; i++) {
+                const prevTime = new Date(attempts[i - 1].created_at).getTime();
+                const currTime = new Date(attempts[i].created_at).getTime();
+
+                if (currTime - prevTime > SESSION_GAP_MS) {
+                    // Time gap detected — close current group, start a new one
                     const correct = currentGroup.filter(a => a.is_correct).length;
                     groups.push({
                         attempt_number: groupIndex,
@@ -287,7 +290,20 @@ function QuizPageContent() {
                     currentGroup = [];
                     groupIndex++;
                 }
-            });
+                currentGroup.push(attempts[i]);
+            }
+
+            // Push the last group
+            if (currentGroup.length > 0) {
+                const correct = currentGroup.filter(a => a.is_correct).length;
+                groups.push({
+                    attempt_number: groupIndex,
+                    date: currentGroup[0].created_at,
+                    results: [...currentGroup],
+                    score: correct,
+                    total: currentGroup.length,
+                });
+            }
 
             setAttemptHistory(groups);
         } else {
