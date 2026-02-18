@@ -110,20 +110,22 @@ export function QuizPlayer({
             onAnswerSubmit?.(currentQuestion.id, true, attempts);
         } else {
             setAnswerState('incorrect');
-            setAttempts((prev) => prev + 1);
+            // Compute new attempts count locally to avoid stale state
+            const newAttempts = attempts + 1;
+            setAttempts(newAttempts);
 
-            // After 2 incorrect attempts, move on
-            if (attempts >= 2) {
+            // After 2 incorrect attempts, record as wrong and move on
+            if (newAttempts >= 2) {
                 const timeSpent = Math.round((Date.now() - startTime) / 1000);
                 const result: QuizResult = {
                     questionId: currentQuestion.id,
                     isCorrect: false,
-                    attempts,
+                    attempts: newAttempts,
                     timeSpentSec: timeSpent,
                 };
                 setResults((prev) => [...prev, result]);
 
-                onAnswerSubmit?.(currentQuestion.id, false, attempts);
+                onAnswerSubmit?.(currentQuestion.id, false, newAttempts);
             }
         }
     };
