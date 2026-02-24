@@ -206,6 +206,7 @@ export function CalendarWidget({ variant, className }: CalendarWidgetProps) {
                             <SelectItem value="all">All Events</SelectItem>
                             <SelectItem value="study_block">Study Blocks</SelectItem>
                             <SelectItem value="deadline">Deadlines</SelectItem>
+                            <SelectItem value="timetable_class">Timetable</SelectItem>
                             <SelectItem value="habit">Habits</SelectItem>
                         </SelectContent>
                     </Select>

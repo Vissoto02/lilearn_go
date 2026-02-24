@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/app/page-header';
 import { WeeklyCalendar, TodayView } from '@/components/app/weekly-calendar';
-import { CalendarWidget } from '@/components/calendar';
 import { UploadPanel } from '@/components/uploads';
 import { EmptyState } from '@/components/app/empty-state';
 import { LoadingSkeleton } from '@/components/app/loading-skeleton';
+import { TimetableUploadCard } from '@/components/planner/TimetableUploadCard';
+import { TimetablePreviewTable } from '@/components/planner/TimetablePreviewTable';
+import { PlannerCalendarSection } from '@/components/planner/PlannerCalendarSection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -37,11 +39,12 @@ import {
     formatWeekStartDate,
 } from '@/lib/plan-generator';
 import { getWeakestTopics } from '@/lib/weakness-calculator';
+import type { TimetableUpload } from '@/lib/timetable/types';
+import { getRecentTimetableUploads } from '@/app/actions/timetable';
 import {
     Calendar,
     Settings,
     Loader2,
-    Plus,
     Sparkles,
 } from 'lucide-react';
 
@@ -65,10 +68,15 @@ export default function PlannerPage() {
     const [editStartTime, setEditStartTime] = useState('18:00');
     const [editEndTime, setEditEndTime] = useState('21:00');
 
+    // Timetable upload state
+    const [timetableUpload, setTimetableUpload] = useState<TimetableUpload | null>(null);
+    const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+
     const weekStart = getWeekStartDate();
 
     useEffect(() => {
         fetchData();
+        fetchTimetableUploads();
     }, []);
 
     const fetchData = async () => {
@@ -101,6 +109,17 @@ export default function PlannerPage() {
         if (topicsData) setTopics(topicsData);
 
         setLoading(false);
+    };
+
+    const fetchTimetableUploads = async () => {
+        const result = await getRecentTimetableUploads(1);
+        if (result.data && result.data.length > 0) {
+            const latest = result.data[0];
+            // Only show if it's in an active state (not confirmed)
+            if (latest.status !== 'confirmed') {
+                setTimetableUpload(latest);
+            }
+        }
     };
 
     const handleGeneratePlan = async () => {
@@ -252,6 +271,21 @@ export default function PlannerPage() {
         }
     };
 
+    // Timetable handlers
+    const handleTimetableUploadComplete = (upload: TimetableUpload) => {
+        setTimetableUpload(upload);
+    };
+
+    const handleTimetableDiscard = () => {
+        setTimetableUpload(null);
+    };
+
+    const handleTimetableConfirmed = (count: number) => {
+        setTimetableUpload(null);
+        // Force calendar to re-fetch to show new events
+        setCalendarRefreshKey(prev => prev + 1);
+    };
+
     if (loading) {
         return (
             <div className="space-y-8">
@@ -277,8 +311,24 @@ export default function PlannerPage() {
                 }}
             />
 
-            {/* Upload & Generate Quiz Section */}
-            <UploadPanel className="mb-2" />
+
+
+            {/* ======== TIMETABLE UPLOAD SECTION ======== */}
+            <TimetableUploadCard
+                currentUpload={timetableUpload}
+                onUploadComplete={handleTimetableUploadComplete}
+                onDiscard={handleTimetableDiscard}
+            />
+
+            {/* Timetable Preview Table (shows when parsed data is ready) */}
+            {timetableUpload?.status === 'needs_review' && timetableUpload.parsed_json && (
+                <TimetablePreviewTable
+                    uploadId={timetableUpload.id}
+                    initialItems={timetableUpload.parsed_json}
+                    onConfirmed={handleTimetableConfirmed}
+                    onDiscard={handleTimetableDiscard}
+                />
+            )}
 
             {/* Settings Row */}
             <div className="flex flex-wrap items-center gap-4">
@@ -341,7 +391,7 @@ export default function PlannerPage() {
                 </TabsContent>
 
                 <TabsContent value="calendar" className="mt-4">
-                    <CalendarWidget variant="planner" />
+                    <PlannerCalendarSection refreshKey={calendarRefreshKey} />
                 </TabsContent>
             </Tabs>
 
@@ -375,7 +425,7 @@ export default function PlannerPage() {
                     <DialogHeader>
                         <DialogTitle>Set Availability</DialogTitle>
                         <DialogDescription>
-                            Configure when you're available to study
+                            Configure when you&apos;re available to study
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">

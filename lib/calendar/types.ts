@@ -1,6 +1,6 @@
 // LiLearn Calendar Types
 
-export type CalendarEventType = 'study_block' | 'deadline';
+export type CalendarEventType = 'study_block' | 'deadline' | 'timetable_class';
 
 export interface CalendarEvent {
     id: string;
@@ -12,6 +12,8 @@ export interface CalendarEvent {
     topic_id: string | null;
     color: string;
     description: string | null;
+    location: string | null;
+    source: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -54,7 +56,7 @@ export interface DayEvents {
     habitMinutes: number;
 }
 
-export type CalendarFilter = 'all' | 'study_block' | 'deadline' | 'habit';
+export type CalendarFilter = 'all' | 'study_block' | 'deadline' | 'timetable_class' | 'habit';
 
 // API response types
 export interface CalendarActionResult<T = CalendarEvent> {
@@ -81,5 +83,12 @@ export const EVENT_COLORS = {
         { name: 'Red', value: '#ef4444' },
         { name: 'Orange', value: '#f97316' },
         { name: 'Pink', value: '#ec4899' },
+    ],
+    timetable_class: [
+        { name: 'Teal', value: '#14b8a6' },
+        { name: 'Cyan', value: '#06b6d4' },
+        { name: 'Violet', value: '#8b5cf6' },
+        { name: 'Amber', value: '#f59e0b' },
+        { name: 'Rose', value: '#ec4899' },
     ],
 } as const;
