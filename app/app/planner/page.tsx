@@ -7,6 +7,7 @@ import { UploadPanel } from '@/components/uploads';
 import { EmptyState } from '@/components/app/empty-state';
 import { LoadingSkeleton } from '@/components/app/loading-skeleton';
 import { TimetableUploadCard } from '@/components/planner/TimetableUploadCard';
+import { WeeklyTimetableGrid } from '@/components/planner/WeeklyTimetableGrid';
 import { TimetablePreviewTable } from '@/components/planner/TimetablePreviewTable';
 import { PlannerCalendarSection } from '@/components/planner/PlannerCalendarSection';
 import { Button } from '@/components/ui/button';
@@ -363,18 +364,15 @@ export default function PlannerPage() {
                     <TabsTrigger value="calendar">Calendar</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="week" className="mt-4">
-                    {tasks.length === 0 ? (
-                        <EmptyState
-                            icon={Calendar}
-                            title="No study plan yet"
-                            description="Generate a plan based on your availability and weak areas"
-                            action={{
-                                label: 'Generate Plan',
-                                onClick: handleGeneratePlan,
-                            }}
-                        />
-                    ) : (
+                <TabsContent value="week" className="mt-4 space-y-6">
+                    {/* Interactive Timetable Grid */}
+                    <WeeklyTimetableGrid
+                        referenceDate={weekStart}
+                        refreshKey={calendarRefreshKey}
+                    />
+
+                    {/* Study Plan Tasks (below the grid) */}
+                    {tasks.length > 0 && (
                         <WeeklyCalendar
                             weekStartDate={weekStart}
                             tasks={tasks}
