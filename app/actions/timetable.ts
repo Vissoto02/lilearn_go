@@ -189,32 +189,46 @@ export async function processTimetableUpload(
         // The timetable branch in n8n processes synchronously and returns parsed data
         const result = await response.json();
 
-        // Extract parsed items from n8n response
-        // The parse_timetable_subworkflow returns: { items: [...], meta: {...} }
-        // But the response might be wrapped differently depending on n8n version
+        // Extract parsed items from n8n response.
+        // n8n can return the data in several shapes depending on version and node config:
+        //   { items: [...], meta: {...} }          ← direct from subworkflow
+        //   { ok: true, items: [...], meta: {...} } ← wrapped by Respond Timetable Result
+        //   [{ items: [...] }]                     ← array of one item
+        //   [{ json: { items: [...] } }]            ← n8n raw item array
         let parsedItems: TimetableItem[] = [];
 
         if (result && result.items && Array.isArray(result.items)) {
             parsedItems = result.items;
         } else if (result && Array.isArray(result)) {
-            // n8n might return array directly
             const firstItem = result[0];
-            if (firstItem && firstItem.items) {
+            if (firstItem?.items && Array.isArray(firstItem.items)) {
                 parsedItems = firstItem.items;
+            } else if (firstItem?.json?.items && Array.isArray(firstItem.json.items)) {
+                parsedItems = firstItem.json.items;
             }
         }
 
+        // Log for debugging if still empty
         if (parsedItems.length === 0) {
+            console.error('[timetable] 0 items parsed. Raw n8n response:', JSON.stringify(result).slice(0, 500));
+        }
+
+        if (parsedItems.length === 0) {
+            const fileType = upload.mime_type === 'application/pdf' ? 'PDF' : 'image';
+            const hint = upload.mime_type === 'application/pdf'
+                ? 'Try a clearer PDF with selectable text, or use a PNG/JPG screenshot instead.'
+                : 'Try a clearer image, or upload a PDF version of your timetable.';
+
             await supabase
                 .from('timetable_uploads')
                 .update({
                     status: 'failed',
-                    error_message: 'No timetable items could be extracted from the file. Try a clearer PDF.',
+                    error_message: `No timetable items could be extracted from the ${fileType}. ${hint}`,
                     parsed_json: result, // Store raw response for debugging
                 })
                 .eq('id', uploadId);
 
-            return { error: 'No timetable items could be extracted from the file' };
+            return { error: `No timetable items could be extracted from the ${fileType}. ${hint}` };
         }
 
         // Store parsed items and set status to needs_review
