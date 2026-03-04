@@ -37,6 +37,7 @@ export interface Quiz {
     subject: string;
     topic: string;
     difficulty: Difficulty;
+    question_type?: QuestionType;
     created_at: string;
 }
 

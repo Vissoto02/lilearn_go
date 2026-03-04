@@ -80,6 +80,23 @@ function getDifficultyColor(difficulty: string): string {
     }
 }
 
+function getQuestionTypeLabel(type?: string): string {
+    switch (type) {
+        case 'mcq': return 'MCQ';
+        case 'tf': return 'T/F';
+        case 'fill': return 'Fill';
+        default: return 'MCQ';
+    }
+}
+
+function getQuestionTypeColor(type?: string): string {
+    switch (type) {
+        case 'tf': return 'bg-teal-500/10 text-teal-500 border-teal-500/20';
+        case 'fill': return 'bg-violet-500/10 text-violet-500 border-violet-500/20';
+        default: return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+    }
+}
+
 // ============================================================================
 // Page Wrapper (Suspense for useSearchParams)
 // ============================================================================
@@ -506,6 +523,10 @@ function QuizPageContent() {
                                         {selectedQuiz.difficulty}
                                     </Badge>
                                     <span>•</span>
+                                    <Badge variant="outline" className={getQuestionTypeColor(selectedQuiz.question_type)}>
+                                        {getQuestionTypeLabel(selectedQuiz.question_type)}
+                                    </Badge>
+                                    <span>•</span>
                                     <span className="flex items-center gap-1">
                                         <FileText className="h-3.5 w-3.5" />
                                         {currentQuestions.length} questions
@@ -700,11 +721,14 @@ function QuizCard({ quiz, onClick }: { quiz: QuizWithMeta; onClick: () => void }
                         )}
                     </div>
 
-                    {/* Subject and Difficulty */}
+                    {/* Subject, Difficulty, and Question Type */}
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-medium text-muted-foreground">{quiz.subject}</span>
                         <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getDifficultyColor(quiz.difficulty)}`}>
                             {quiz.difficulty}
+                        </Badge>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getQuestionTypeColor(quiz.question_type)}`}>
+                            {getQuestionTypeLabel(quiz.question_type)}
                         </Badge>
                     </div>
 
