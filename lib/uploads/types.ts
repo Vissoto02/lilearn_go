@@ -10,7 +10,8 @@ export type SupportedMimeType =
 export interface QuizGenerationOptions {
     difficulty: 'easy' | 'medium' | 'hard';
     question_count: number;
-    question_types: ('mcq' | 'short_answer')[];
+    question_types: ('mcq' | 'short_answer' | 'tf' | 'fill')[];
+    question_type?: 'mcq' | 'tf' | 'fill';
 }
 
 export interface Upload {

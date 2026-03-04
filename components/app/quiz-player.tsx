@@ -34,6 +34,98 @@ export interface QuizResult {
 
 type AnswerState = 'idle' | 'correct' | 'incorrect';
 
+// Helper to get question type label
+function getQuestionTypeLabel(type: string): string {
+    switch (type) {
+        case 'mcq': return 'Multiple Choice';
+        case 'tf': return 'True / False';
+        case 'fill': return 'Fill in the Blank';
+        default: return 'Short Answer';
+    }
+}
+
+// Helper to get the correct answer display text
+function getCorrectAnswerDisplay(question: QuizQuestion): string {
+    const type = question.type;
+
+    if (type === 'mcq') {
+        const label = (question.correct_label || question.answer_hash || '').toUpperCase();
+        // Try to find the choice text
+        if (question.choices && Array.isArray(question.choices)) {
+            const idx = ['A', 'B', 'C', 'D'].indexOf(label);
+            if (idx >= 0) {
+                const choice = question.choices[idx];
+                if (typeof choice === 'string') return `${label}: ${choice}`;
+                if (typeof choice === 'object' && 'text' in choice) return `${label}: ${choice.text}`;
+            }
+        }
+        return label;
+    }
+
+    if (type === 'tf') {
+        const answer = (question.answer_hash || '').toLowerCase();
+        return answer === 'true' ? 'True' : 'False';
+    }
+
+    if (type === 'fill') {
+        // answer_hash is JSON with correct_answers array
+        try {
+            const parsed = JSON.parse(question.answer_hash || '{}');
+            if (parsed.correct_answers && Array.isArray(parsed.correct_answers)) {
+                return parsed.correct_answers[0] || question.correct_label || '';
+            }
+        } catch {
+            // fallback
+        }
+        return question.correct_label || '';
+    }
+
+    return question.correct_label || question.answer_hash || '';
+}
+
+// Check if fill-in-the-blank answer is correct
+function checkFillAnswer(userAnswer: string, answerHash: string): boolean {
+    const trimmed = userAnswer.toLowerCase().trim();
+    if (!trimmed) return false;
+
+    try {
+        const parsed = JSON.parse(answerHash || '{}');
+        const correctAnswers: string[] = parsed.correct_answers || [];
+        const requiredKeywords: string[] = parsed.required_keywords || [];
+
+        // Check if the answer exactly matches any correct answer (case-insensitive)
+        for (const correct of correctAnswers) {
+            if (trimmed === correct.toLowerCase().trim()) {
+                return true;
+            }
+        }
+
+        // Check if all required keywords are present in the answer
+        if (requiredKeywords.length > 0) {
+            const allKeywordsPresent = requiredKeywords.every(
+                kw => trimmed.includes(kw.toLowerCase().trim())
+            );
+            if (allKeywordsPresent) {
+                // Also check if the answer is close to any correct answer
+                for (const correct of correctAnswers) {
+                    const correctLower = correct.toLowerCase().trim();
+                    // Allow partial match if keywords are present
+                    if (trimmed.includes(correctLower) || correctLower.includes(trimmed)) {
+                        return true;
+                    }
+                }
+                // If all keywords present, consider it correct
+                return true;
+            }
+        }
+
+        return false;
+    } catch {
+        // Fallback: direct string comparison
+        return trimmed === (answerHash || '').toLowerCase().trim();
+    }
+}
+
 export function QuizPlayer({
     questions,
     onComplete,
@@ -51,7 +143,10 @@ export function QuizPlayer({
 
     const currentQuestion = questions[currentIndex];
     const progress = ((currentIndex + 1) / questions.length) * 100;
-    const isMCQ = currentQuestion?.type === 'mcq';
+    const questionType = currentQuestion?.type || 'mcq';
+    const isMCQ = questionType === 'mcq';
+    const isTF = questionType === 'tf';
+    const isFill = questionType === 'fill';
 
     // Helper: Normalize choices to standard format
     // Supports both new format: ["text A", "text B", ...] and legacy: [{label: "A", text: "..."}, ...]
@@ -88,11 +183,28 @@ export function QuizPlayer({
     const handleSubmit = () => {
         if (!selectedAnswer.trim() || !currentQuestion) return;
 
-        // Compare answer: support both plain label ("a"/"b"/"c"/"d") and correct_label ("A"/"B"/"C"/"D")
-        const userAnswer = selectedAnswer.toLowerCase().trim();
-        const correctHash = (currentQuestion.answer_hash || '').toLowerCase().trim();
-        const correctLabel = (currentQuestion.correct_label || '').toLowerCase().trim();
-        const isCorrect = userAnswer === correctHash || userAnswer === correctLabel;
+        let isCorrect = false;
+
+        if (isMCQ) {
+            // Compare answer: support both plain label ("a"/"b"/"c"/"d") and correct_label ("A"/"B"/"C"/"D")
+            const userAnswer = selectedAnswer.toLowerCase().trim();
+            const correctHash = (currentQuestion.answer_hash || '').toLowerCase().trim();
+            const correctLabel = (currentQuestion.correct_label || '').toLowerCase().trim();
+            isCorrect = userAnswer === correctHash || userAnswer === correctLabel;
+        } else if (isTF) {
+            // True/False: answer_hash is 'true' or 'false'
+            const userAnswer = selectedAnswer.toLowerCase().trim();
+            const correctAnswer = (currentQuestion.answer_hash || '').toLowerCase().trim();
+            isCorrect = userAnswer === correctAnswer;
+        } else if (isFill) {
+            // Fill in the blank: check against correct_answers and required_keywords
+            isCorrect = checkFillAnswer(selectedAnswer, currentQuestion.answer_hash || '');
+        } else {
+            // Short answer fallback
+            const userAnswer = selectedAnswer.toLowerCase().trim();
+            const correctHash = (currentQuestion.answer_hash || '').toLowerCase().trim();
+            isCorrect = userAnswer === correctHash;
+        }
 
         if (isCorrect) {
             setAnswerState('correct');
@@ -191,7 +303,7 @@ export function QuizPlayer({
                         Question {currentIndex + 1} of {questions.length}
                     </Badge>
                     <Badge variant="secondary">
-                        {currentQuestion.type === 'mcq' ? 'Multiple Choice' : 'Short Answer'}
+                        {getQuestionTypeLabel(questionType)}
                     </Badge>
                 </div>
                 <Progress value={progress} className="mt-2" />
@@ -236,8 +348,74 @@ export function QuizPlayer({
                     </div>
                 )}
 
-                {/* Short Answer Input */}
-                {!isMCQ && (
+                {/* True/False Options */}
+                {isTF && (
+                    <div className="grid grid-cols-2 gap-4">
+                        {['true', 'false'].map((value) => (
+                            <button
+                                key={value}
+                                onClick={() => handleAnswerSelect(value)}
+                                disabled={answerState !== 'idle'}
+                                className={cn(
+                                    'flex flex-col items-center justify-center gap-2 rounded-xl border-2 p-6 text-center transition-all',
+                                    'hover:border-primary/50 hover:bg-accent hover:scale-[1.02]',
+                                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                    selectedAnswer === value &&
+                                    answerState === 'idle' &&
+                                    'border-primary bg-primary/5 scale-[1.02]',
+                                    selectedAnswer === value &&
+                                    answerState === 'correct' &&
+                                    'border-green-500 bg-green-50 dark:bg-green-950',
+                                    selectedAnswer === value &&
+                                    answerState === 'incorrect' &&
+                                    'border-red-500 bg-red-50 dark:bg-red-950',
+                                    answerState !== 'idle' &&
+                                    selectedAnswer !== value &&
+                                    'opacity-50'
+                                )}
+                            >
+                                <span className={cn(
+                                    'flex h-12 w-12 items-center justify-center rounded-full text-xl font-bold',
+                                    value === 'true'
+                                        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                        : 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
+                                )}>
+                                    {value === 'true' ? '✓' : '✗'}
+                                </span>
+                                <span className="text-lg font-semibold capitalize">{value === 'true' ? 'True' : 'False'}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Fill in the Blank Input */}
+                {isFill && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <HelpCircle className="h-4 w-4" />
+                            <span>Type your answer in the blank</span>
+                        </div>
+                        <Input
+                            value={selectedAnswer}
+                            onChange={(e) => setSelectedAnswer(e.target.value)}
+                            placeholder="Type your answer..."
+                            disabled={answerState !== 'idle'}
+                            className={cn(
+                                'text-lg py-6',
+                                answerState === 'correct' && 'border-green-500 bg-green-50 dark:bg-green-950',
+                                answerState === 'incorrect' && 'border-red-500 bg-red-50 dark:bg-red-950'
+                            )}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleSubmit();
+                                }
+                            }}
+                        />
+                    </div>
+                )}
+
+                {/* Short Answer Input (legacy fallback) */}
+                {!isMCQ && !isTF && !isFill && (
                     <div className="space-y-2">
                         <Input
                             value={selectedAnswer}
@@ -276,6 +454,18 @@ export function QuizPlayer({
                                     : 'Not quite. Try again!'}
                             </span>
                         </div>
+
+                        {/* Show correct answer after final attempt */}
+                        {attempts >= 2 && (
+                            <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-4 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                                <div>
+                                    <span className="font-medium">Correct answer: </span>
+                                    <span>{getCorrectAnswerDisplay(currentQuestion)}</span>
+                                </div>
+                            </div>
+                        )}
+
                         {showHint && currentQuestion.hint && (
                             <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-4 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                                 <HelpCircle className="mt-0.5 h-5 w-5 shrink-0" />

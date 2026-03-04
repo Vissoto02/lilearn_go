@@ -70,6 +70,7 @@ export async function createUpload(
         difficulty: input.options?.difficulty || 'medium',
         question_count: input.options?.question_count || 10,
         question_types: input.options?.question_types || ['mcq'],
+        question_type: input.options?.question_type || (input.options?.question_types?.[0] as 'mcq' | 'tf' | 'fill') || 'mcq',
     };
 
     // Create signed upload URL (valid for 1 hour)

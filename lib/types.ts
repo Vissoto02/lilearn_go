@@ -3,7 +3,7 @@
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type TaskStatus = 'todo' | 'done' | 'skipped';
-export type QuestionType = 'mcq' | 'short_answer';
+export type QuestionType = 'mcq' | 'short_answer' | 'tf' | 'fill';
 export type NotificationStatus = 'pending' | 'sent' | 'failed';
 
 export interface Profile {

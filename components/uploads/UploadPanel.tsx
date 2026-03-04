@@ -62,6 +62,7 @@ export function UploadPanel({ className }: UploadPanelProps) {
     // Quiz options
     const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
     const [questionCount, setQuestionCount] = useState('10');
+    const [questionType, setQuestionType] = useState<'mcq' | 'tf' | 'fill'>('mcq');
 
     // Fetch uploads on mount
     useEffect(() => {
@@ -172,7 +173,8 @@ export function UploadPanel({ className }: UploadPanelProps) {
                 options: {
                     difficulty,
                     question_count: parseInt(questionCount),
-                    question_types: ['mcq'],
+                    question_types: [questionType],
+                    question_type: questionType,
                 },
             });
 
@@ -318,7 +320,20 @@ export function UploadPanel({ className }: UploadPanelProps) {
 
                 {/* Quiz Options */}
                 {selectedFile && (
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="space-y-2">
+                            <Label>Question Type</Label>
+                            <Select value={questionType} onValueChange={(v: 'mcq' | 'tf' | 'fill') => setQuestionType(v)}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="mcq">Multiple Choice</SelectItem>
+                                    <SelectItem value="tf">True / False</SelectItem>
+                                    <SelectItem value="fill">Fill in the Blank</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="space-y-2">
                             <Label>Difficulty</Label>
                             <Select value={difficulty} onValueChange={(v: 'easy' | 'medium' | 'hard') => setDifficulty(v)}>
