@@ -10,10 +10,12 @@ import { TimetableUploadCard } from '@/components/planner/TimetableUploadCard';
 import { WeeklyTimetableGrid } from '@/components/planner/WeeklyTimetableGrid';
 import { TimetablePreviewTable } from '@/components/planner/TimetablePreviewTable';
 import { PlannerCalendarSection } from '@/components/planner/PlannerCalendarSection';
+import { AssignmentDeadlineForm } from '@/components/planner/AssignmentDeadlineForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Dialog,
@@ -47,9 +49,62 @@ import {
     Settings,
     Loader2,
     Sparkles,
+    Upload,
+    CheckCircle2,
+    CalendarClock,
+    Eye,
+    ArrowLeft,
+    Plus,
 } from 'lucide-react';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Wizard steps
+type WizardStep = 'upload' | 'review' | 'deadlines' | 'schedule';
+
+// Step indicator component
+function StepIndicator({ currentStep }: { currentStep: WizardStep }) {
+    const steps: { key: WizardStep; label: string; icon: typeof Upload }[] = [
+        { key: 'upload', label: 'Upload', icon: Upload },
+        { key: 'review', label: 'Review', icon: CheckCircle2 },
+        { key: 'deadlines', label: 'Deadlines', icon: CalendarClock },
+        { key: 'schedule', label: 'Schedule', icon: Eye },
+    ];
+
+    const currentIndex = steps.findIndex((s) => s.key === currentStep);
+
+    return (
+        <div className="flex items-center justify-center gap-2 py-4">
+            {steps.map((step, i) => {
+                const isActive = step.key === currentStep;
+                const isCompleted = i < currentIndex;
+                const Icon = step.icon;
+
+                return (
+                    <div key={step.key} className="flex items-center gap-2">
+                        <div
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isActive
+                                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
+                                    : isCompleted
+                                        ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
+                                        : 'bg-muted text-muted-foreground'
+                                }`}
+                        >
+                            <Icon className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">{step.label}</span>
+                        </div>
+                        {i < steps.length - 1 && (
+                            <div
+                                className={`h-px w-6 ${i < currentIndex ? 'bg-teal-500' : 'bg-border'
+                                    }`}
+                            />
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
 
 export default function PlannerPage() {
     const { toast } = useToast();
@@ -69,9 +124,11 @@ export default function PlannerPage() {
     const [editStartTime, setEditStartTime] = useState('18:00');
     const [editEndTime, setEditEndTime] = useState('21:00');
 
-    // Timetable upload state
+    // Wizard state
+    const [wizardStep, setWizardStep] = useState<WizardStep>('upload');
     const [timetableUpload, setTimetableUpload] = useState<TimetableUpload | null>(null);
     const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+    const [hasConfirmedTimetable, setHasConfirmedTimetable] = useState(false);
 
     const weekStart = getWeekStartDate();
 
@@ -116,12 +173,44 @@ export default function PlannerPage() {
         const result = await getRecentTimetableUploads(1);
         if (result.data && result.data.length > 0) {
             const latest = result.data[0];
-            // Only show if it's in an active state (not confirmed)
-            if (latest.status !== 'confirmed') {
+
+            if (latest.status === 'confirmed') {
+                // User already has a confirmed timetable — go straight to schedule
+                setHasConfirmedTimetable(true);
+                setWizardStep('schedule');
+            } else if (latest.status === 'needs_review') {
+                // Timetable was parsed, needs review
                 setTimetableUpload(latest);
+                setWizardStep('review');
+            } else if (latest.status === 'processing' || latest.status === 'uploaded') {
+                setTimetableUpload(latest);
+                setWizardStep('upload');
+            } else {
+                // Failed or no upload
+                setWizardStep('upload');
+            }
+        } else {
+            // Check if user has any timetable_class events already
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { count } = await supabase
+                    .from('calendar_events')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id)
+                    .eq('event_type', 'timetable_class');
+
+                if (count && count > 0) {
+                    setHasConfirmedTimetable(true);
+                    setWizardStep('schedule');
+                }
             }
         }
     };
+
+    // ========================================================================
+    // Plan Generation
+    // ========================================================================
 
     const handleGeneratePlan = async () => {
         if (availability.length === 0) {
@@ -150,7 +239,6 @@ export default function PlannerPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // Get quiz attempts for weakness calculation
             const { data: attempts } = await supabase
                 .from('quiz_attempts')
                 .select('*, quizzes(*)')
@@ -166,7 +254,6 @@ export default function PlannerPage() {
                 quizzes || []
             );
 
-            // Generate study sessions
             const sessions = generateStudyPlan(
                 weekStart,
                 availability,
@@ -175,7 +262,6 @@ export default function PlannerPage() {
                 parseInt(targetHours)
             );
 
-            // Delete existing plan for this week
             const weekStartStr = formatWeekStartDate(weekStart);
             await supabase
                 .from('plans')
@@ -183,7 +269,6 @@ export default function PlannerPage() {
                 .eq('user_id', user.id)
                 .eq('week_start_date', weekStartStr);
 
-            // Create new plan
             const { data: newPlan, error: planError } = await supabase
                 .from('plans')
                 .insert({
@@ -195,7 +280,6 @@ export default function PlannerPage() {
 
             if (planError || !newPlan) throw new Error('Failed to create plan');
 
-            // Create tasks
             const tasksToInsert = sessionsToTasks(sessions, newPlan.id);
             const { data: newTasks, error: tasksError } = await supabase
                 .from('plan_tasks')
@@ -245,7 +329,6 @@ export default function PlannerPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Upsert availability
         const { error } = await supabase
             .from('availability')
             .upsert({
@@ -272,20 +355,48 @@ export default function PlannerPage() {
         }
     };
 
-    // Timetable handlers
+    // ========================================================================
+    // Wizard handlers
+    // ========================================================================
+
     const handleTimetableUploadComplete = (upload: TimetableUpload) => {
         setTimetableUpload(upload);
+        setWizardStep('review');
     };
 
     const handleTimetableDiscard = () => {
         setTimetableUpload(null);
+        setWizardStep('upload');
     };
 
     const handleTimetableConfirmed = (count: number) => {
         setTimetableUpload(null);
-        // Force calendar to re-fetch to show new events
-        setCalendarRefreshKey(prev => prev + 1);
+        setHasConfirmedTimetable(true);
+        setCalendarRefreshKey((prev) => prev + 1);
+        setWizardStep('deadlines');
     };
+
+    const handleDeadlinesComplete = (count: number) => {
+        setCalendarRefreshKey((prev) => prev + 1);
+        setWizardStep('schedule');
+    };
+
+    const handleDeadlinesSkip = () => {
+        setWizardStep('schedule');
+    };
+
+    const handleDeadlinesBack = () => {
+        setWizardStep('review');
+    };
+
+    const handleResetWizard = () => {
+        setWizardStep('upload');
+        setTimetableUpload(null);
+    };
+
+    // ========================================================================
+    // Render
+    // ========================================================================
 
     if (loading) {
         return (
@@ -297,11 +408,11 @@ export default function PlannerPage() {
     }
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-6 animate-fade-in">
             <PageHeader
                 title="Planner"
                 description="Your adaptive weekly study schedule"
-                action={{
+                action={wizardStep === 'schedule' ? {
                     label: generating ? 'Generating...' : 'Generate Plan',
                     onClick: handleGeneratePlan,
                     icon: generating ? (
@@ -309,112 +420,168 @@ export default function PlannerPage() {
                     ) : (
                         <Sparkles className="mr-2 h-4 w-4" />
                     ),
-                }}
+                } : undefined}
             />
 
-
-
-            {/* ======== TIMETABLE UPLOAD SECTION ======== */}
-            <TimetableUploadCard
-                currentUpload={timetableUpload}
-                onUploadComplete={handleTimetableUploadComplete}
-                onDiscard={handleTimetableDiscard}
-            />
-
-            {/* Timetable Preview Table (shows when parsed data is ready) */}
-            {timetableUpload?.status === 'needs_review' && timetableUpload.parsed_json && (
-                <TimetablePreviewTable
-                    uploadId={timetableUpload.id}
-                    initialItems={timetableUpload.parsed_json}
-                    onConfirmed={handleTimetableConfirmed}
-                    onDiscard={handleTimetableDiscard}
-                />
+            {/* ========== WIZARD STEP INDICATOR ========== */}
+            {wizardStep !== 'schedule' && (
+                <StepIndicator currentStep={wizardStep} />
             )}
 
-            {/* Settings Row */}
-            <div className="flex flex-wrap items-center gap-4">
-                <Button
-                    variant="outline"
-                    onClick={() => setAvailabilityDialogOpen(true)}
-                >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Set Availability
-                </Button>
-                <div className="flex items-center gap-2">
-                    <Label htmlFor="targetHours" className="text-sm">
-                        Target hours/week:
-                    </Label>
-                    <Input
-                        id="targetHours"
-                        type="number"
-                        value={targetHours}
-                        onChange={(e) => setTargetHours(e.target.value)}
-                        className="w-20"
-                        min="1"
-                        max="40"
+            {/* ========== STEP 1: UPLOAD TIMETABLE ========== */}
+            {wizardStep === 'upload' && (
+                <div className="max-w-2xl mx-auto space-y-4">
+                    <TimetableUploadCard
+                        currentUpload={timetableUpload}
+                        onUploadComplete={handleTimetableUploadComplete}
+                        onDiscard={handleTimetableDiscard}
+                    />
+
+                    {/* Skip to schedule if already has timetable */}
+                    {hasConfirmedTimetable && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-muted-foreground"
+                            onClick={() => setWizardStep('schedule')}
+                        >
+                            ← Back to my schedule
+                        </Button>
+                    )}
+                </div>
+            )}
+
+            {/* ========== STEP 2: REVIEW & MODIFY ========== */}
+            {wizardStep === 'review' && timetableUpload?.status === 'needs_review' && timetableUpload.parsed_json && (
+                <div className="max-w-4xl mx-auto">
+                    <TimetablePreviewTable
+                        uploadId={timetableUpload.id}
+                        initialItems={timetableUpload.parsed_json}
+                        onConfirmed={handleTimetableConfirmed}
+                        onDiscard={handleTimetableDiscard}
                     />
                 </div>
-            </div>
+            )}
 
-            {/* Calendar Views */}
-            <Tabs defaultValue="week">
-                <TabsList>
-                    <TabsTrigger value="week">Week View</TabsTrigger>
-                    <TabsTrigger value="today">Today</TabsTrigger>
-                    <TabsTrigger value="calendar">Calendar</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="week" className="mt-4 space-y-6">
-                    {/* Interactive Timetable Grid */}
-                    <WeeklyTimetableGrid
-                        referenceDate={weekStart}
-                        refreshKey={calendarRefreshKey}
+            {/* ========== STEP 3: ASSIGNMENT DEADLINES ========== */}
+            {wizardStep === 'deadlines' && (
+                <div className="max-w-2xl mx-auto">
+                    <AssignmentDeadlineForm
+                        onComplete={handleDeadlinesComplete}
+                        onSkip={handleDeadlinesSkip}
+                        onBack={handleDeadlinesBack}
                     />
+                </div>
+            )}
 
-                    {/* Study Plan Tasks (below the grid) */}
-                    {tasks.length > 0 && (
-                        <WeeklyCalendar
-                            weekStartDate={weekStart}
-                            tasks={tasks}
-                            onTaskStatusChange={handleTaskStatusChange}
-                        />
-                    )}
-                </TabsContent>
-
-                <TabsContent value="today" className="mt-4">
-                    <TodayView
-                        tasks={tasks}
-                        onTaskStatusChange={handleTaskStatusChange}
-                    />
-                </TabsContent>
-
-                <TabsContent value="calendar" className="mt-4">
-                    <PlannerCalendarSection refreshKey={calendarRefreshKey} />
-                </TabsContent>
-            </Tabs>
-
-            {/* Availability Summary */}
-            {availability.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Your Availability</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                            {availability.map((a) => (
-                                <div
-                                    key={a.id}
-                                    className="rounded-lg border border-border p-3 text-sm"
-                                >
-                                    <p className="font-medium">{DAYS[a.day_of_week]}</p>
-                                    <p className="text-muted-foreground">
-                                        {a.start_time} - {a.end_time}
-                                    </p>
-                                </div>
-                            ))}
+            {/* ========== STEP 4: SCHEDULE VIEW ========== */}
+            {wizardStep === 'schedule' && (
+                <>
+                    {/* Quick actions bar */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setWizardStep('upload')}
+                            className="gap-2"
+                        >
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload New Timetable
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setWizardStep('deadlines')}
+                            className="gap-2"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add Deadlines
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAvailabilityDialogOpen(true)}
+                            className="gap-2"
+                        >
+                            <Settings className="h-3.5 w-3.5" />
+                            Set Availability
+                        </Button>
+                        <div className="flex items-center gap-2 ml-auto">
+                            <Label htmlFor="targetHours" className="text-sm text-muted-foreground">
+                                Target hrs/week:
+                            </Label>
+                            <Input
+                                id="targetHours"
+                                type="number"
+                                value={targetHours}
+                                onChange={(e) => setTargetHours(e.target.value)}
+                                className="w-16 h-8 text-sm"
+                                min="1"
+                                max="40"
+                            />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    {/* Calendar Views */}
+                    <Tabs defaultValue="week">
+                        <TabsList>
+                            <TabsTrigger value="week">Week View</TabsTrigger>
+                            <TabsTrigger value="today">Today</TabsTrigger>
+                            <TabsTrigger value="calendar">Calendar</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="week" className="mt-4 space-y-6">
+                            {/* Interactive Timetable Grid */}
+                            <WeeklyTimetableGrid
+                                referenceDate={weekStart}
+                                refreshKey={calendarRefreshKey}
+                            />
+
+                            {/* Study Plan Tasks (below the grid) */}
+                            {tasks.length > 0 && (
+                                <WeeklyCalendar
+                                    weekStartDate={weekStart}
+                                    tasks={tasks}
+                                    onTaskStatusChange={handleTaskStatusChange}
+                                />
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="today" className="mt-4">
+                            <TodayView
+                                tasks={tasks}
+                                onTaskStatusChange={handleTaskStatusChange}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="calendar" className="mt-4">
+                            <PlannerCalendarSection refreshKey={calendarRefreshKey} />
+                        </TabsContent>
+                    </Tabs>
+
+                    {/* Availability Summary */}
+                    {availability.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Your Availability</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                    {availability.map((a) => (
+                                        <div
+                                            key={a.id}
+                                            className="rounded-lg border border-border p-3 text-sm"
+                                        >
+                                            <p className="font-medium">{DAYS[a.day_of_week]}</p>
+                                            <p className="text-muted-foreground">
+                                                {a.start_time} - {a.end_time}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </>
             )}
 
             {/* Availability Dialog */}

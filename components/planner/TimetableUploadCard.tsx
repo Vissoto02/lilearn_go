@@ -205,12 +205,17 @@ export function TimetableUploadCard({
         <Card className={cn('overflow-hidden', className)}>
             {/* Gradient header - teal/cyan to differentiate from quiz upload */}
             <CardHeader className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    <CalendarDays className="h-5 w-5" />
-                    Semester Timetable Upload
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <CalendarDays className="h-5 w-5" />
+                        Upload Your Timetable
+                    </CardTitle>
+                    <Badge className="bg-white/20 text-white border-0">
+                        Step 1 of 3
+                    </Badge>
+                </div>
                 <p className="text-sm text-teal-100 mt-1">
-                    Upload your timetable and we&apos;ll extract class sessions for your calendar
+                    Upload your semester timetable and our AI will extract your class schedule
                 </p>
             </CardHeader>
 

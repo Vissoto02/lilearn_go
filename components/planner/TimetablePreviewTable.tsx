@@ -161,13 +161,18 @@ export function TimetablePreviewTable({
                             {items.length} sessions
                         </Badge>
                     </CardTitle>
-                    <Button size="sm" variant="ghost" onClick={onDiscard} className="text-muted-foreground">
-                        <Trash2 className="mr-1 h-3 w-3" />
-                        Discard
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Badge className="bg-teal-600/10 text-teal-600 border-teal-600/20">
+                            Step 2 of 3
+                        </Badge>
+                        <Button size="sm" variant="ghost" onClick={onDiscard} className="text-muted-foreground">
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Discard
+                        </Button>
+                    </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    Edit any incorrect values below, then confirm to add to your calendar.
+                    Edit any incorrect values below, then confirm to save and continue.
                 </p>
             </CardHeader>
 
@@ -296,15 +301,28 @@ export function TimetablePreviewTable({
                         <Input
                             id="weeks"
                             type="number"
-                            value={weeks}
-                            onChange={(e) => setWeeks(Math.max(1, Math.min(52, parseInt(e.target.value) || 14)))}
+                            value={weeks === 0 ? '' : weeks}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '') {
+                                    setWeeks(0);
+                                } else {
+                                    setWeeks(Math.min(52, parseInt(val) || 0));
+                                }
+                            }}
                             min={1}
                             max={52}
-                            className="h-9 w-24"
+                            className={`h-9 w-24 ${weeks < 1 ? 'border-destructive' : ''}`}
                         />
-                        <p className="text-xs text-muted-foreground">
-                            How many weeks to generate (1–52)
-                        </p>
+                        {weeks < 1 ? (
+                            <p className="text-xs text-destructive">
+                                Must be at least 1 week
+                            </p>
+                        ) : (
+                            <p className="text-xs text-muted-foreground">
+                                How many weeks to generate (1–52)
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -320,7 +338,7 @@ export function TimetablePreviewTable({
                         ) : (
                             <CheckCircle2 className="mr-2 h-4 w-4" />
                         )}
-                        Confirm &amp; Add to Calendar
+                        Confirm & Next →
                     </Button>
                     <Button variant="outline" onClick={onDiscard} disabled={confirming}>
                         <RotateCcw className="mr-2 h-4 w-4" />
