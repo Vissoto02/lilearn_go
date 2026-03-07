@@ -79,6 +79,7 @@ export function EventModal({
     const [date, setDate] = useState('');
     const [startTime, setStartTime] = useState('09:00');
     const [endTime, setEndTime] = useState('10:00');
+    const [dueTime, setDueTime] = useState('23:59');
     const [topicId, setTopicId] = useState<string>('none');
     const [color, setColor] = useState('#6366f1');
     const [description, setDescription] = useState('');
@@ -104,6 +105,9 @@ export function EventModal({
                     const end = new Date(editEvent.end_time);
                     if (editEvent.event_type === 'deadline') {
                         setDate(formatDateKey(end));
+                    } else if (editEvent.event_type === 'assignment') {
+                        setDate(formatDateKey(end));
+                        setDueTime(formatTimeInput(end));
                     } else {
                         setEndTime(formatTimeInput(end));
                     }
@@ -119,6 +123,7 @@ export function EventModal({
                 setDate(selectedDate ? formatDateKey(selectedDate) : today);
                 setStartTime('09:00');
                 setEndTime('10:00');
+                setDueTime('23:59');
                 setTopicId('none');
                 setColor('#6366f1');
                 setDescription('');
@@ -130,7 +135,7 @@ export function EventModal({
     // Update color when event type changes
     useEffect(() => {
         if (!isEditing) {
-            setColor(eventType === 'deadline' ? '#ef4444' : '#6366f1');
+            setColor((eventType === 'deadline' || eventType === 'assignment') ? '#ef4444' : '#6366f1');
         }
     }, [eventType, isEditing]);
 
@@ -156,9 +161,18 @@ export function EventModal({
                     topic_id: topicId === 'none' ? undefined : topicId,
                 };
 
-                if (eventType === 'study_block') {
+                if (eventType === 'study_block' || eventType === 'timetable_class') {
                     updateInput.start_time = `${date}T${startTime}:00+08:00`;
                     updateInput.end_time = `${date}T${endTime}:00+08:00`;
+                } else if (eventType === 'assignment') {
+                    const offsetMinutes = new Date().getTimezoneOffset();
+                    const sign = offsetMinutes <= 0 ? '+' : '-';
+                    const absOffset = Math.abs(offsetMinutes);
+                    const offsetHH = String(Math.floor(absOffset / 60)).padStart(2, '0');
+                    const offsetMM = String(absOffset % 60).padStart(2, '0');
+                    const tzOffset = `${sign}${offsetHH}:${offsetMM}`;
+                    updateInput.start_time = undefined;
+                    updateInput.end_time = `${date}T${dueTime}:00${tzOffset}`;
                 }
 
                 const result = await onUpdateEvent(updateInput);
@@ -208,7 +222,7 @@ export function EventModal({
         }
     };
 
-    const colorOptions = eventType === 'deadline' ? DEADLINE_COLORS : STUDY_BLOCK_COLORS;
+    const colorOptions = (eventType === 'deadline' || eventType === 'assignment') ? DEADLINE_COLORS : STUDY_BLOCK_COLORS;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -257,7 +271,7 @@ export function EventModal({
                         {/* Date */}
                         <div className="space-y-2">
                             <Label htmlFor="date">
-                                {eventType === 'deadline' ? 'Due Date' : 'Date'}
+                                {(eventType === 'deadline' || eventType === 'assignment') ? 'Due Date' : 'Date'}
                             </Label>
                             <Input
                                 id="date"
@@ -292,6 +306,20 @@ export function EventModal({
                                         required
                                     />
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Due Time (for assignments) */}
+                        {eventType === 'assignment' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="dueTime">Due Time</Label>
+                                <Input
+                                    id="dueTime"
+                                    type="time"
+                                    value={dueTime}
+                                    onChange={(e) => setDueTime(e.target.value)}
+                                    required
+                                />
                             </div>
                         )}
 
