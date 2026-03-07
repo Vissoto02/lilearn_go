@@ -1,6 +1,6 @@
 // LiLearn Calendar Types
 
-export type CalendarEventType = 'study_block' | 'deadline' | 'timetable_class';
+export type CalendarEventType = 'study_block' | 'deadline' | 'timetable_class' | 'assignment';
 
 export interface CalendarEvent {
     id: string;
@@ -56,7 +56,7 @@ export interface DayEvents {
     habitMinutes: number;
 }
 
-export type CalendarFilter = 'all' | 'study_block' | 'deadline' | 'timetable_class' | 'habit';
+export type CalendarFilter = 'all' | 'study_block' | 'deadline' | 'timetable_class' | 'assignment' | 'habit';
 
 // API response types
 export interface CalendarActionResult<T = CalendarEvent> {

@@ -113,7 +113,14 @@ export function AssignmentDeadlineForm({
 
             // Build calendar events for each deadline
             const events = valid.map((entry) => {
-                const dueDatetime = `${entry.dueDate}T${entry.dueTime}:00`;
+                // Get local timezone offset (e.g. +08:00 for UTC+8)
+                const offsetMinutes = new Date().getTimezoneOffset();
+                const sign = offsetMinutes <= 0 ? '+' : '-';
+                const absOffset = Math.abs(offsetMinutes);
+                const offsetHH = String(Math.floor(absOffset / 60)).padStart(2, '0');
+                const offsetMM = String(absOffset % 60).padStart(2, '0');
+                const tzOffset = `${sign}${offsetHH}:${offsetMM}`;
+                const dueDatetime = `${entry.dueDate}T${entry.dueTime}:00${tzOffset}`;
                 return {
                     user_id: user.id,
                     title: entry.title.trim(),

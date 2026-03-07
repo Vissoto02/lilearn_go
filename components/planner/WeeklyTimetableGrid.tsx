@@ -35,7 +35,14 @@ import {
     CalendarDays,
     ChevronLeft,
     ChevronRight,
+    AlertCircle,
 } from 'lucide-react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { format, addDays, startOfWeek, parseISO } from 'date-fns';
 
 // ============================================================================
@@ -163,7 +170,7 @@ export function WeeklyTimetableGrid({
         fetchEvents();
     }, [fetchEvents, refreshKey]);
 
-    // Map events to grid positions
+    // Map events to grid positions (only events with start_time and end_time)
     const gridEvents = useMemo<GridEvent[]>(() => {
         return events
             .filter(e => e.start_time && e.end_time)
@@ -171,12 +178,10 @@ export function WeeklyTimetableGrid({
                 const start = parseISO(event.start_time!);
                 const end = parseISO(event.end_time!);
 
-                // Find which day column
                 const eventDateKey = formatDateKey(start);
                 const dayIndex = weekDays.findIndex(d => formatDateKey(d) === eventDateKey);
                 if (dayIndex === -1) return null;
 
-                // Calculate row position (relative to 7:00 AM)
                 const startHour = start.getHours() + start.getMinutes() / 60;
                 const endHour = end.getHours() + end.getMinutes() / 60;
                 const startRow = Math.max(0, startHour - 7);
@@ -185,6 +190,22 @@ export function WeeklyTimetableGrid({
                 return { event, dayIndex, startRow, spanRows };
             })
             .filter(Boolean) as GridEvent[];
+    }, [events, weekDays]);
+
+    // Group assignment deadlines by day (these have no time slot on the grid)
+    const assignmentsByDay = useMemo(() => {
+        const map = new Map<number, CalendarEvent[]>();
+        for (const event of events) {
+            if (event.event_type !== 'assignment') continue;
+            const dateStr = event.end_time || event.start_time;
+            if (!dateStr) continue;
+            const eventDateKey = formatDateKey(new Date(dateStr));
+            const dayIndex = weekDays.findIndex(d => formatDateKey(d) === eventDateKey);
+            if (dayIndex === -1) continue;
+            if (!map.has(dayIndex)) map.set(dayIndex, []);
+            map.get(dayIndex)!.push(event);
+        }
+        return map;
     }, [events, weekDays]);
 
     // Navigation
@@ -345,11 +366,12 @@ export function WeeklyTimetableGrid({
                         </div>
                         {weekDays.map((day, i) => {
                             const isToday = isTodayTz(day);
+                            const dayAssignments = assignmentsByDay.get(i) || [];
                             return (
                                 <div
                                     key={i}
                                     className={cn(
-                                        'p-2 text-center border-r border-border last:border-r-0 transition-colors',
+                                        'p-2 text-center border-r border-border last:border-r-0 transition-colors relative',
                                         isToday && 'bg-teal-500/10'
                                     )}
                                 >
@@ -367,6 +389,47 @@ export function WeeklyTimetableGrid({
                                     )}>
                                         {day.getDate()}
                                     </p>
+
+                                    {/* Assignment deadline badge */}
+                                    {dayAssignments.length > 0 && (
+                                        <TooltipProvider delayDuration={200}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 cursor-pointer">
+                                                        <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+                                                        {dayAssignments.length > 1 && (
+                                                            <span className="text-[9px] font-bold text-red-500">
+                                                                {dayAssignments.length}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom" className="max-w-[240px] p-0">
+                                                    <div className="p-2 space-y-1.5">
+                                                        <p className="text-xs font-semibold text-red-500 flex items-center gap-1">
+                                                            <AlertCircle className="h-3 w-3" />
+                                                            {dayAssignments.length} Assignment{dayAssignments.length > 1 ? 's' : ''} Due
+                                                        </p>
+                                                        {dayAssignments.map((a) => (
+                                                            <div key={a.id} className="text-xs border-t border-border pt-1">
+                                                                <p className="font-medium">{a.title}</p>
+                                                                {a.end_time && (
+                                                                    <p className="text-muted-foreground">
+                                                                        Due {format(parseISO(a.end_time), 'h:mm a')}
+                                                                    </p>
+                                                                )}
+                                                                {a.description && (
+                                                                    <p className="text-muted-foreground/70 truncate">
+                                                                        {a.description}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    )}
                                 </div>
                             );
                         })}

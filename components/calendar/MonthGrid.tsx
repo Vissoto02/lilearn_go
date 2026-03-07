@@ -69,9 +69,9 @@ export function MonthGrid({
             const dayEvents = map.get(key);
             if (!dayEvents) continue;
 
-            if (event.event_type === 'study_block') {
+            if (event.event_type === 'study_block' || event.event_type === 'timetable_class') {
                 dayEvents.studyBlocks.push(event);
-            } else if (event.event_type === 'deadline') {
+            } else if (event.event_type === 'deadline' || event.event_type === 'assignment') {
                 dayEvents.deadlines.push(event);
             }
         }
@@ -134,8 +134,8 @@ export function MonthGrid({
                     const isSelected = selectedDate && formatDateKey(selectedDate) === key;
 
                     // Filter events based on current filter
-                    const showStudyBlocks = filter === 'all' || filter === 'study_block';
-                    const showDeadlines = filter === 'all' || filter === 'deadline';
+                    const showStudyBlocks = filter === 'all' || filter === 'study_block' || filter === 'timetable_class';
+                    const showDeadlines = filter === 'all' || filter === 'deadline' || filter === 'assignment';
                     const showHabits = filter === 'all' || filter === 'habit';
 
                     const hasStudyBlocks = dayEvents.studyBlocks.length > 0 && showStudyBlocks;

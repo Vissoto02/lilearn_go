@@ -15,6 +15,8 @@ import {
     Pencil,
     Trash2,
     CalendarDays,
+    GraduationCap,
+    CalendarClock,
 } from 'lucide-react';
 
 interface AgendaListProps {
@@ -39,9 +41,11 @@ export function AgendaList({
     const dateKey = formatDateKey(selectedDate);
 
     // Filter events for selected date
-    const { studyBlocks, deadlines, habitData } = useMemo(() => {
+    const { studyBlocks, timetableClasses, deadlines, assignments, habitData } = useMemo(() => {
         const dayStudyBlocks: CalendarEvent[] = [];
+        const dayTimetableClasses: CalendarEvent[] = [];
         const dayDeadlines: CalendarEvent[] = [];
+        const dayAssignments: CalendarEvent[] = [];
 
         for (const event of events) {
             const eventDate = event.start_time || event.end_time;
@@ -52,42 +56,56 @@ export function AgendaList({
 
             if (event.event_type === 'study_block') {
                 dayStudyBlocks.push(event);
+            } else if (event.event_type === 'timetable_class') {
+                dayTimetableClasses.push(event);
             } else if (event.event_type === 'deadline') {
                 dayDeadlines.push(event);
+            } else if (event.event_type === 'assignment') {
+                dayAssignments.push(event);
             }
         }
 
-        // Sort study blocks by start time
+        // Sort by start time
         dayStudyBlocks.sort((a, b) => {
             if (!a.start_time || !b.start_time) return 0;
             return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
         });
+        dayTimetableClasses.sort((a, b) => {
+            if (!a.start_time || !b.start_time) return 0;
+            return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+        });
 
-        // Find habit for this date
         const habit = habits.find((h) => h.date === dateKey);
 
         return {
             studyBlocks: dayStudyBlocks,
+            timetableClasses: dayTimetableClasses,
             deadlines: dayDeadlines,
+            assignments: dayAssignments,
             habitData: habit,
         };
     }, [events, habits, dateKey]);
 
-    const isEmpty = studyBlocks.length === 0 && deadlines.length === 0 && !habitData?.checkin;
+    const totalEvents = studyBlocks.length + timetableClasses.length + deadlines.length + assignments.length;
+    const isEmpty = totalEvents === 0 && !habitData?.checkin;
 
     return (
-        <div className={cn('rounded-lg border border-border bg-card', className)}>
+        <div className={cn('rounded-lg border border-border bg-card flex flex-col', className)} style={{ maxHeight }}>
             {/* Header */}
             <div className="border-b border-border px-4 py-3">
                 <h3 className="font-semibold">{formatFullDate(selectedDate)}</h3>
                 <p className="text-sm text-muted-foreground">
-                    {studyBlocks.length} study block{studyBlocks.length !== 1 ? 's' : ''} •{' '}
-                    {deadlines.length} deadline{deadlines.length !== 1 ? 's' : ''}
+                    {timetableClasses.length > 0 && `${timetableClasses.length} class${timetableClasses.length !== 1 ? 'es' : ''}`}
+                    {timetableClasses.length > 0 && (studyBlocks.length > 0 || deadlines.length > 0 || assignments.length > 0) && ' • '}
+                    {studyBlocks.length > 0 && `${studyBlocks.length} study block${studyBlocks.length !== 1 ? 's' : ''}`}
+                    {studyBlocks.length > 0 && (deadlines.length > 0 || assignments.length > 0) && ' • '}
+                    {(deadlines.length + assignments.length) > 0 && `${deadlines.length + assignments.length} deadline${(deadlines.length + assignments.length) !== 1 ? 's' : ''}`}
+                    {totalEvents === 0 && '0 events'}
                 </p>
             </div>
 
             {/* Content */}
-            <ScrollArea style={{ maxHeight }}>
+            <ScrollArea className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-4">
                     {isEmpty ? (
                         <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -99,6 +117,24 @@ export function AgendaList({
                         </div>
                     ) : (
                         <>
+                            {/* Timetable Classes */}
+                            {timetableClasses.length > 0 && (
+                                <div className="space-y-2">
+                                    <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                        <GraduationCap className="h-4 w-4" />
+                                        Classes
+                                    </h4>
+                                    {timetableClasses.map((event) => (
+                                        <EventCard
+                                            key={event.id}
+                                            event={event}
+                                            onEdit={onEditEvent}
+                                            onDelete={onDeleteEvent}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
                             {/* Study Blocks */}
                             {studyBlocks.length > 0 && (
                                 <div className="space-y-2">
@@ -125,6 +161,24 @@ export function AgendaList({
                                         Deadlines
                                     </h4>
                                     {deadlines.map((event) => (
+                                        <EventCard
+                                            key={event.id}
+                                            event={event}
+                                            onEdit={onEditEvent}
+                                            onDelete={onDeleteEvent}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Assignments */}
+                            {assignments.length > 0 && (
+                                <div className="space-y-2">
+                                    <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                        <CalendarClock className="h-4 w-4" />
+                                        Assignments Due
+                                    </h4>
+                                    {assignments.map((event) => (
                                         <EventCard
                                             key={event.id}
                                             event={event}
@@ -174,32 +228,41 @@ interface EventCardProps {
 
 function EventCard({ event, onEdit, onDelete }: EventCardProps) {
     const isStudyBlock = event.event_type === 'study_block';
+    const isTimetableClass = event.event_type === 'timetable_class';
+    const isAssignment = event.event_type === 'assignment';
+    const hasTimeRange = (isStudyBlock || isTimetableClass) && event.start_time && event.end_time;
 
     return (
         <div
-            className="group relative rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+            className="group relative rounded-lg border border-border p-3 transition-colors hover:bg-muted/50 overflow-hidden"
             style={{ borderLeftColor: event.color, borderLeftWidth: '4px' }}
         >
             <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{event.title}</p>
-                    {isStudyBlock && event.start_time && event.end_time && (
+                    <p className="font-medium break-words">{event.title}</p>
+                    {hasTimeRange && (
                         <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
                             <span>
-                                {formatTime(event.start_time)} – {formatTime(event.end_time)}
+                                {formatTime(event.start_time!)} – {formatTime(event.end_time!)}
                             </span>
                         </div>
                     )}
+                    {isAssignment && event.end_time && (
+                        <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            <span>Due {formatTime(event.end_time)}</span>
+                        </div>
+                    )}
                     {event.description && (
-                        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                        <p className="mt-1 text-sm text-muted-foreground break-words">
                             {event.description}
                         </p>
                     )}
                 </div>
 
                 {/* Action buttons (visible on hover) */}
-                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 shrink-0">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -223,3 +286,4 @@ function EventCard({ event, onEdit, onDelete }: EventCardProps) {
         </div>
     );
 }
+
