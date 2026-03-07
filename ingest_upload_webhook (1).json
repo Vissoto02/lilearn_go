@@ -1,0 +1,1310 @@
+{
+  "name": "ingest_upload_webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-2",
+              "name": "supabase_url",
+              "value": "=https://bkmttsciyftuhdwrwppp.supabase.co",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "supabase_key",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbXR0c2NpeWZ0dWhkd3J3cHBwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzY3MDUzNCwiZXhwIjoyMDgzMjQ2NTM0fQ.mTpFcwx5iXWcnMJ23fnD6uWhs6Iux_iiUPovSQi_7mY",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "upload_id",
+              "value": "={{ $json.body.upload_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "user_id",
+              "value": "={{ $json.body.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "file_path",
+              "value": "={{ $json.body.file_path }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "file_name",
+              "value": "={{ $json.body.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "mime_type",
+              "value": "={{ $json.body.mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-9",
+              "name": "signed_url",
+              "value": "={{ $json.body.signed_url }}",
+              "type": "string"
+            },
+            {
+              "id": "id-10",
+              "name": "options",
+              "value": "={{ $json.body.options }}",
+              "type": "object"
+            },
+            {
+              "id": "1526b489-f2da-4a73-be58-bd8825c51655",
+              "name": "topic_id",
+              "value": "={{ $json.body.topic_id }}",
+              "type": "string"
+            },
+            {
+              "id": "9e6051b9-f836-4b01-a17b-bb3ab41069d1",
+              "name": "quiz_id",
+              "value": "={{ $json.body.quiz_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f660a0e4-f7bf-4333-a241-813c2235d07a",
+              "name": "topic_name",
+              "value": "={{ $json.body.topic_name}}",
+              "type": "string"
+            },
+            {
+              "id": "id-11",
+              "name": "purpose",
+              "value": "={{ $json.body.purpose || \"quiz\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dcf2839d-12d3-414a-8ec9-251e7aeae54a",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        4576
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "ca374e78-0372-4b69-af8c-20f591909b0b",
+      "name": "Verify Secret Header",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        128,
+        4384
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"ok\": false,\n  \"error\": \"unauthorized\"\n}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "a9b213f7-c521-44d7-a96b-a8fdc492378b",
+      "name": "Return 401 Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -544,
+        3984
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "processing",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "error_message",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "5594367e-345f-4b49-b233-664b877e5d2f",
+      "name": "Prepare Processing Status Update",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        352,
+        4384
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Workflow Configuration').item.json.supabase_url + '/rest/v1/uploads?id=eq.' + $('Workflow Configuration').item.json.upload_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Workflow Configuration').item.json.supabase_key }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Workflow Configuration').item.json.supabase_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"status\": \"processing\",\n  \"error_message\": null\n}",
+        "options": {}
+      },
+      "id": "3d049c4a-1175-4e0e-8e66-bf390d1b5885",
+      "name": "Update Status to Processing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        576,
+        4384
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\"ok\": true, \"upload_id\": $('Workflow Configuration').item.json.upload_id, \"status\": \"processing\"} }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ecb0cc45-88d3-4e6f-a4cb-61d4e1b71cd9",
+      "name": "Return Immediate Acknowledgement",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        800,
+        4384
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Workflow Configuration').item.json.signed_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "57b73f38-9854-4c57-925e-1cdc603b354f",
+      "name": "Download File from Signed URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1024,
+        4384
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Workflow Configuration').item.json.mime_type }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "491f7c28-1000-4fb5-9256-32b4959ad2b9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Workflow Configuration').item.json.mime_type }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "81886b51-0597-4be0-9cab-795df7783069"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DOCX"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Workflow Configuration').item.json.mime_type }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d058891e-1b7c-4b22-8c99-e2623d0a80a7"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PPTX"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7353c7ee-4921-4635-bfd7-ca2c743ad4a2",
+      "name": "Route by File Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1248,
+        4368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "1e049707-fa83-4c7d-a02a-a1115c3179c5",
+      "name": "Extract Text from PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        4208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "id": "bfd138f8-59e9-451d-85d7-674aeb194e4a",
+      "name": "Extract Text from DOCX",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        4400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "id": "c379006d-e66d-4335-8858-8191f12e8b55",
+      "name": "Extract Text from PPTX",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        4592
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "extracted_text",
+              "value": "={{ $json.text.replace(/\\s+/g, ' ').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "text_length",
+              "value": "={{ $json.text.replace(/\\s+/g, ' ').trim().length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "4f79e768-2357-4e34-a62e-31559152459c",
+      "name": "Normalize Extracted Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1696,
+        4400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.text_length }}",
+              "rightValue": 1000,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "96030db9-f547-4377-ae96-7b867f50d69c",
+      "name": "Validate Text Length",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1920,
+        4400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "failed",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "error_message",
+              "value": "extracted_text_too_short",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "d86c211f-9ed5-4db6-871a-577f4f1d14e2",
+      "name": "Prepare Text Too Short Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2144,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Workflow Configuration').item.json.supabase_url + '/rest/v1/uploads?id=eq.' + $('Workflow Configuration').item.json.upload_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Workflow Configuration').item.json.supabase_key }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Workflow Configuration').item.json.supabase_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"status\": $json.status, \"error_message\": $json.error_message} }}",
+        "options": {}
+      },
+      "id": "01920c66-10ea-434a-9d82-e6f1337284b4",
+      "name": "Update Status to Failed - Text Too Short",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2368,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "errorMessage": "Extracted text too short (less than 1000 characters)"
+      },
+      "id": "679b2bdd-5f25-4b73-a550-2a26c727090a",
+      "name": "Stop - Text Too Short",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        4288
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "90bc5ea8-7db4-4159-bc6d-01094d17238f",
+      "name": "Prepare Extracted Status Update",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2144,
+        4544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Workflow Configuration').item.json.supabase_url + '/rest/v1/uploads?id=eq.' + $('Workflow Configuration').item.json.upload_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Workflow Configuration').item.json.supabase_key }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Workflow Configuration').item.json.supabase_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"status\": \"processing\",\n  \"error_message\": null\n}",
+        "options": {}
+      },
+      "id": "3afb6b7c-0f52-4fe5-a0e1-1583b8bf2b04",
+      "name": "Update Status to Extracted",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2368,
+        4544
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "upload_id",
+              "value": "={{ $('Workflow Configuration').item.json.upload_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "user_id",
+              "value": "={{ $('Workflow Configuration').item.json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "source",
+              "value": "={{ {\"file_name\": $('Workflow Configuration').item.json.file_name, \"file_path\": $('Workflow Configuration').item.json.file_path, \"mime_type\": $('Workflow Configuration').item.json.mime_type} }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "extracted_text",
+              "value": "={{ $('Normalize Extracted Text').item.json.extracted_text }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "options",
+              "value": "={{ $('Workflow Configuration').item.json.options }}",
+              "type": "object"
+            },
+            {
+              "id": "375c80cb-c761-49e3-9b37-37b79deff57a",
+              "name": "quiz_id",
+              "value": "={{ $('Workflow Configuration').item.json.quiz_id }}",
+              "type": "string"
+            },
+            {
+              "id": "e8422076-422f-450a-a6f4-dca8e8d61b6e",
+              "name": "topic_name",
+              "value": "={{ $('Workflow Configuration').item.json.topic_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "85996864-0705-440e-804d-8fdb5b22e49f",
+      "name": "Prepare Workflow 2 Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2592,
+        4544
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "cwN0AF5OlRVsnk-kE8h1Q"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "4a0e6a74-145d-4188-a8ea-99aec34725b1",
+      "name": "Execute generate_quiz_from_text",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2816,
+        4544
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "upload_id",
+              "value": "={{ $('Workflow Configuration').item.json.upload_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "status",
+              "value": "processing",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "text_length",
+              "value": "={{ $('Normalize Extracted Text').item.json.text_length }}",
+              "type": "number"
+            },
+            {
+              "id": "id-4",
+              "name": "mime_type",
+              "value": "={{ $('Workflow Configuration').item.json.mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "file_name",
+              "value": "={{ $('Workflow Configuration').item.json.file_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb29fd96-bdcb-4af2-b38c-5cdd59ddd4bf",
+      "name": "Create Summary Log",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3168,
+        4672
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/ingest-upload",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2922ed99-db5b-494a-b0ff-6dd69e464b77",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -544,
+        4576
+      ],
+      "webhookId": "d59f2051-3d93-4662-bbb7-3222209882dd"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.purpose }}",
+                    "rightValue": "timetable",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8747ddad-5a37-47e5-9f23-498a3e744389"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Timetable"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.purpose }}",
+                    "rightValue": "quiz",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a883da9d-4986-4e81-85ff-fa1b6390a048"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Quiz"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4554c9db-a4c2-48d6-a941-8732e33bbede",
+      "name": "Switch: Purpose",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        4576
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mime_type || $json.body.mime_type }}",
+                    "rightValue": "image/png",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e7ba11c4-e77a-479a-b603-e85c2ec7b2e6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PNG"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mime_type || $json.body.mime_type }}",
+                    "rightValue": "image/jpeg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "86e456bf-5497-4ddf-b994-51b2e5a4ba98"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "JPEG"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mime_type || $json.body.mime_type }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2b411a31-faa3-441b-91eb-f36cfc9dd322"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f3518949-cd07-4a54-a719-7d365886c65c",
+      "name": "Switch: Timetable File Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1472,
+        4768
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "upload_id",
+              "value": "={{ $('Workflow Configuration').item.json.upload_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "user_id",
+              "value": "={{ $('Workflow Configuration').item.json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "signed_url",
+              "value": "={{ $('Workflow Configuration').item.json.signed_url }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "mime_type",
+              "value": "={{ $('Workflow Configuration').item.json.mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "purpose",
+              "value": "timetable",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "file_name",
+              "value": "={{ $('Workflow Configuration').item.json.file_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9706a453-96a9-4e54-8314-495788df92df",
+      "name": "Prepare Timetable Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2176,
+        4800
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "yYEg0NK_zL39QlfVDkifI",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/yYEg0NK_zL39QlfVDkifI"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "c374d9ac-a462-4b64-b0cf-ec619f918c69",
+      "name": "Timetable",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2816,
+        4768
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, upload_id: $('Workflow Configuration').item.json.upload_id, items: $json.items || [], meta: $json.meta || {} }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "b8f9c2d3-e4a5-6b7c-d8e9-f0a1b2c3d4e5",
+      "name": "Respond Timetable Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3040,
+        4800
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Verify Secret Header": {
+      "main": [
+        [
+          {
+            "node": "Prepare Processing Status Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Processing Status Update": {
+      "main": [
+        [
+          {
+            "node": "Update Status to Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to Processing": {
+      "main": [
+        [
+          {
+            "node": "Return Immediate Acknowledgement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Immediate Acknowledgement": {
+      "main": [
+        [
+          {
+            "node": "Download File from Signed URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File from Signed URL": {
+      "main": [
+        [
+          {
+            "node": "Route by File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by File Type": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Text from DOCX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Text from PPTX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from PDF": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from DOCX": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from PPTX": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Extracted Text": {
+      "main": [
+        [
+          {
+            "node": "Validate Text Length",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Text Length": {
+      "main": [
+        [
+          {
+            "node": "Prepare Extracted Status Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Text Too Short Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Text Too Short Error": {
+      "main": [
+        [
+          {
+            "node": "Update Status to Failed - Text Too Short",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to Failed - Text Too Short": {
+      "main": [
+        [
+          {
+            "node": "Stop - Text Too Short",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Extracted Status Update": {
+      "main": [
+        [
+          {
+            "node": "Update Status to Extracted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to Extracted": {
+      "main": [
+        [
+          {
+            "node": "Prepare Workflow 2 Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Workflow 2 Payload": {
+      "main": [
+        [
+          {
+            "node": "Execute generate_quiz_from_text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute generate_quiz_from_text": {
+      "main": [
+        [
+          {
+            "node": "Create Summary Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Switch: Purpose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Purpose": {
+      "main": [
+        [
+          {
+            "node": "Switch: Timetable File Type",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Verify Secret Header",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Timetable File Type": {
+      "main": [
+        [
+          {
+            "node": "Prepare Timetable Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Timetable Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Timetable Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Timetable Payload": {
+      "main": [
+        [
+          {
+            "node": "Timetable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Timetable": {
+      "main": [
+        [
+          {
+            "node": "Respond Timetable Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond Timetable Result": {
+      "main": [
+        [
+          {
+            "node": "Create Summary Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6748a04a-a07e-4783-8f0a-338ca26bc78f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7f77dde16d03ffee9a7ef8b39cd458ce6dcd15ee57890e5fed2a214a6f3de7f4"
+  },
+  "id": "A1gG8nH-SdrbTsdCBqN45",
+  "tags": []
+}

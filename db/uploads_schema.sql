@@ -60,11 +60,11 @@ on quizzes(upload_id)
 where upload_id is not null;
 
 
-alter table quiz_questions add column correct_label text;
-
-alter table quiz_questions
-add constraint quiz_questions_correct_label_chk
-check (correct_label in ('A','B','C','D') or correct_label is null);
+alter table quiz_questions add column if not exists correct_label text;
+-- Note: correct_label allows any text value:
+--   MCQ: 'A', 'B', 'C', 'D'
+--   True/False: 'True', 'False'
+--   Fill-in-Blank: primary correct answer text
 -- ============================================================================
 -- INDEXES
 -- ============================================================================

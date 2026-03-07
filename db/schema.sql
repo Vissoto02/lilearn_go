@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS quizzes (
 CREATE TABLE IF NOT EXISTS quiz_questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   quiz_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('mcq', 'short_answer')),
+  type TEXT NOT NULL CHECK (type IN ('mcq', 'short_answer', 'tf', 'fill')),
   prompt TEXT NOT NULL,
   -- Choices stored as JSONB in one of two formats:
   -- New (from n8n): ["answer text A", "answer text B", "answer text C", "answer text D"]
