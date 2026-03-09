@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/app/page-header';
 import { WeeklyCalendar, TodayView } from '@/components/app/weekly-calendar';
 import { UploadPanel } from '@/components/uploads';
@@ -32,6 +32,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { Plan, PlanTask, Availability, Topic } from '@/lib/types';
@@ -84,10 +85,10 @@ function StepIndicator({ currentStep }: { currentStep: WizardStep }) {
                     <div key={step.key} className="flex items-center gap-2">
                         <div
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isActive
-                                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
-                                    : isCompleted
-                                        ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
-                                        : 'bg-muted text-muted-foreground'
+                                ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
+                                : isCompleted
+                                    ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
+                                    : 'bg-muted text-muted-foreground'
                                 }`}
                         >
                             <Icon className="h-3.5 w-3.5" />
@@ -124,11 +125,40 @@ export default function PlannerPage() {
     const [editStartTime, setEditStartTime] = useState('18:00');
     const [editEndTime, setEditEndTime] = useState('21:00');
 
+    // AI Generation state
+    const [previewEvents, setPreviewEvents] = useState<any[]>([]);
+    const [generateOptionsModalOpen, setGenerateOptionsModalOpen] = useState(false);
+
+    // New Advanced AI Generator State
+    const [genPlanningMode, setGenPlanningMode] = useState<'number_of_weeks' | 'until_date'>('number_of_weeks');
+    const [genWeeks, setGenWeeks] = useState<number>(1);
+    const [genUntilDate, setGenUntilDate] = useState<string>('');
+    const [genTargetHours, setGenTargetHours] = useState<number>(10);
+    const [genFocusMode, setGenFocusMode] = useState<'balanced' | 'weak_subjects'>('balanced');
+    const [genPreferredTime, setGenPreferredTime] = useState<'morning' | 'afternoon' | 'night' | 'anytime'>('anytime');
+    const [genSessionLength, setGenSessionLength] = useState<string>('0'); // 0 = flexible
+    const [genMaxSessions, setGenMaxSessions] = useState<number>(2);
+    const [genIntensity, setGenIntensity] = useState<'light' | 'normal' | 'intensive'>('normal');
+    const [genPreferredDays, setGenPreferredDays] = useState<'weekdays' | 'weekends' | 'all'>('all');
+    const [genAvoidB2B, setGenAvoidB2B] = useState<boolean>(true);
+    const [genNotes, setGenNotes] = useState<string>('');
+    const [genSubjectFilter, setGenSubjectFilter] = useState<string[]>([]);
+    const [genTopicFilter, setGenTopicFilter] = useState<string[]>([]);
+    const [savingPreview, setSavingPreview] = useState(false);
+
     // Wizard state
     const [wizardStep, setWizardStep] = useState<WizardStep>('upload');
     const [timetableUpload, setTimetableUpload] = useState<TimetableUpload | null>(null);
     const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
     const [hasConfirmedTimetable, setHasConfirmedTimetable] = useState(false);
+
+    const uniqueSubjects = useMemo(() => {
+        return Array.from(new Set(topics.map(t => t.subject).filter(Boolean))).sort();
+    }, [topics]);
+
+    const uniqueTopics = useMemo(() => {
+        return Array.from(new Set(topics.map(t => t.topic).filter(Boolean))).sort();
+    }, [topics]);
 
     const weekStart = getWeekStartDate();
 
@@ -213,15 +243,6 @@ export default function PlannerPage() {
     // ========================================================================
 
     const handleGeneratePlan = async () => {
-        if (availability.length === 0) {
-            toast({
-                title: 'Set availability first',
-                description: 'Configure your available study times before generating a plan',
-                variant: 'destructive',
-            });
-            setAvailabilityDialogOpen(true);
-            return;
-        }
 
         if (topics.length === 0) {
             toast({
@@ -232,77 +253,116 @@ export default function PlannerPage() {
             return;
         }
 
+        setGenerateOptionsModalOpen(true);
+    };
+
+    const handleExecuteAI = async () => {
         setGenerating(true);
+        setGenerateOptionsModalOpen(false);
 
         try {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: attempts } = await supabase
-                .from('quiz_attempts')
-                .select('*, quizzes(*)')
-                .eq('user_id', user.id);
+            const payload = {
+                user_id: user.id,
+                planning_mode: genPlanningMode,
+                number_of_weeks: genPlanningMode === 'number_of_weeks' ? genWeeks : null,
+                until_date: genPlanningMode === 'until_date' ? genUntilDate : null,
+                focus_mode: genFocusMode,
+                preferred_time: genPreferredTime,
+                target_hours_per_week: genTargetHours,
+                preferred_session_length_minutes: genSessionLength === '0' ? null : parseInt(genSessionLength),
+                max_sessions_per_day: genMaxSessions,
+                intensity: genIntensity,
+                subject_filter: genSubjectFilter.length > 0 ? genSubjectFilter : null,
+                topic_filter: genTopicFilter.length > 0 ? genTopicFilter : null,
+                preferred_days: genPreferredDays,
+                avoid_back_to_back_sessions: genAvoidB2B,
+                notes_to_ai: genNotes || null,
+            };
 
-            const { data: quizzes } = await supabase
-                .from('quizzes')
-                .select('*')
-                .eq('user_id', user.id);
+            const res = await fetch('/api/planner/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
 
-            const weaknesses = getWeakestTopics(
-                (attempts || []).map(a => ({ ...a, quiz: a.quizzes })),
-                quizzes || []
-            );
+            if (!data.success) throw new Error(data.error);
 
-            const sessions = generateStudyPlan(
-                weekStart,
-                availability,
-                topics,
-                weaknesses,
-                parseInt(targetHours)
-            );
+            // Shape standard AI sessions directly into preview calendar events
+            const mappedPreview = data.generated_plan.map((s: any, i: number) => ({
+                id: `preview-${Date.now()}-${i}`,
+                user_id: user.id,
+                title: s.topic ? `${s.subject}: ${s.topic}` : s.subject,
+                event_type: 'generated_plan',
+                start_time: `${s.date}T${s.start_time}:00+08:00`,
+                end_time: `${s.date}T${s.end_time}:00+08:00`,
+                subject: s.subject,
+                color: '#6366f1',
+                description: `📚 ${s.topic || 'General'}\n\n🤖 AI Reason: ${s.reason}`,
+                is_locked: false,
+                source: 'ai'
+            }));
 
-            const weekStartStr = formatWeekStartDate(weekStart);
-            await supabase
-                .from('plans')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('week_start_date', weekStartStr);
-
-            const { data: newPlan, error: planError } = await supabase
-                .from('plans')
-                .insert({
-                    user_id: user.id,
-                    week_start_date: weekStartStr,
-                })
-                .select()
-                .single();
-
-            if (planError || !newPlan) throw new Error('Failed to create plan');
-
-            const tasksToInsert = sessionsToTasks(sessions, newPlan.id);
-            const { data: newTasks, error: tasksError } = await supabase
-                .from('plan_tasks')
-                .insert(tasksToInsert)
-                .select();
-
-            if (tasksError) throw new Error('Failed to create tasks');
-
-            setPlan(newPlan);
-            setTasks(newTasks || []);
-
+            setPreviewEvents(mappedPreview);
             toast({
                 title: 'Plan generated!',
-                description: `Created ${sessions.length} study sessions`,
+                description: `Created ${mappedPreview.length} study sessions. Review and save them in the timetable.`,
             });
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 title: 'Error',
-                description: 'Failed to generate plan',
+                description: error.message || 'Failed to generate plan',
                 variant: 'destructive',
             });
         } finally {
             setGenerating(false);
+        }
+    };
+
+    const handleSavePreview = async () => {
+        setSavingPreview(true);
+        try {
+            const { saveGeneratedPlan } = await import('@/app/actions/calendar');
+
+            // Map preview back to generated session style
+            const sessionsToSave = previewEvents.map(e => {
+                const date = e.start_time.split('T')[0];
+                const start_time = e.start_time.split('T')[1].substring(0, 5);
+                const end_time = e.end_time.split('T')[1].substring(0, 5);
+                const isComplexReason = e.description && e.description.includes('AI Reason:');
+                const reason = isComplexReason ? e.description.split('AI Reason:')[1].trim() : e.description || '';
+
+                return {
+                    date,
+                    start_time,
+                    end_time,
+                    subject: e.subject || '',
+                    topic: e.title.includes(': ') ? e.title.split(': ')[1] : null,
+                    reason
+                };
+            });
+
+            if (sessionsToSave.length === 0) return;
+
+            // Sort to find range dates
+            sessionsToSave.sort((a, b) => a.date.localeCompare(b.date));
+            const startDateStr = sessionsToSave[0].date;
+            const endDateStr = sessionsToSave[sessionsToSave.length - 1].date;
+
+            const result = await saveGeneratedPlan(sessionsToSave, startDateStr, endDateStr);
+            if (!result.success) throw new Error(result.error);
+
+            toast({ title: 'Success', description: 'AI study plan saved to timetable.' });
+            setPreviewEvents([]);
+            setCalendarRefreshKey(prev => prev + 1);
+        } catch (err: any) {
+            toast({ title: 'Error saving plan', description: err.message, variant: 'destructive' });
+        } finally {
+            setSavingPreview(false);
         }
     };
 
@@ -534,6 +594,12 @@ export default function PlannerPage() {
                             <WeeklyTimetableGrid
                                 referenceDate={weekStart}
                                 refreshKey={calendarRefreshKey}
+                                previewEvents={previewEvents}
+                                onClearPreview={() => setPreviewEvents([])}
+                                onSavePreview={handleSavePreview}
+                                onRegeneratePreview={() => setGenerateOptionsModalOpen(true)}
+                                savingPreview={savingPreview}
+                                previewFocusMode={genFocusMode}
                             />
 
                             {/* Study Plan Tasks (below the grid) */}
@@ -637,6 +703,214 @@ export default function PlannerPage() {
                         </Button>
                         <Button onClick={handleSaveAvailability}>
                             Save
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* AI Generate Options Dialog */}
+            <Dialog open={generateOptionsModalOpen} onOpenChange={setGenerateOptionsModalOpen}>
+                <DialogContent className="sm:max-w-4xl overflow-y-auto max-h-[90vh]">
+                    <DialogHeader>
+                        <DialogTitle>Generate AI Study Plan</DialogTitle>
+                        <DialogDescription>
+                            Configure what the AI should focus on
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* General Settings */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold border-b pb-2">General Settings</h3>
+
+                                <div className="space-y-2">
+                                    <Label>Planning Mode</Label>
+                                    <Select value={genPlanningMode} onValueChange={(v: any) => setGenPlanningMode(v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="number_of_weeks">By Number of Weeks</SelectItem>
+                                            <SelectItem value="until_date">Until Specific Date</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {genPlanningMode === 'number_of_weeks' ? (
+                                    <div className="space-y-2">
+                                        <Label>Weeks to Generate</Label>
+                                        <Input type="number" min="1" max="12" value={genWeeks} onChange={(e) => setGenWeeks(parseInt(e.target.value) || 1)} />
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <Label>Generate Until Date</Label>
+                                        <Input type="date" value={genUntilDate} onChange={(e) => setGenUntilDate(e.target.value)} />
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    <Label>Focus Mode</Label>
+                                    <Select value={genFocusMode} onValueChange={(v: any) => setGenFocusMode(v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="balanced">Balanced</SelectItem>
+                                            <SelectItem value="weak_subjects">Prioritize Weak Subjects</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Intensity</Label>
+                                    <Select value={genIntensity} onValueChange={(v: any) => setGenIntensity(v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="light">Light (Fewer, shorter sessions)</SelectItem>
+                                            <SelectItem value="normal">Normal</SelectItem>
+                                            <SelectItem value="intensive">Intensive (Maximizes target hours)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Constraints */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold border-b pb-2">Constraints</h3>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Target Hrs / Week</Label>
+                                        <Input type="number" min="1" max="100" value={genTargetHours} onChange={(e) => setGenTargetHours(parseInt(e.target.value) || 10)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Max Sessions / Day</Label>
+                                        <Input type="number" min="1" max="10" value={genMaxSessions} onChange={(e) => setGenMaxSessions(parseInt(e.target.value) || 2)} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Preferred Time of Day</Label>
+                                    <Select value={genPreferredTime} onValueChange={(v: any) => setGenPreferredTime(v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="anytime">Anytime</SelectItem>
+                                            <SelectItem value="morning">Morning</SelectItem>
+                                            <SelectItem value="afternoon">Afternoon</SelectItem>
+                                            <SelectItem value="night">Night</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Session Length</Label>
+                                    <Select value={genSessionLength} onValueChange={setGenSessionLength}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="0">Flexible (AI Decides)</SelectItem>
+                                            <SelectItem value="30">30 minutes</SelectItem>
+                                            <SelectItem value="45">45 minutes</SelectItem>
+                                            <SelectItem value="60">60 minutes</SelectItem>
+                                            <SelectItem value="90">90 minutes</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Preferred Days</Label>
+                                    <Select value={genPreferredDays} onValueChange={(v: any) => setGenPreferredDays(v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Everyday</SelectItem>
+                                            <SelectItem value="weekdays">Weekdays Only</SelectItem>
+                                            <SelectItem value="weekends">Weekends Only</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Checkbox id="avoid_b2b" checked={genAvoidB2B} onCheckedChange={(c) => setGenAvoidB2B(!!c)} />
+                                    <Label htmlFor="avoid_b2b" className="cursor-pointer">Avoid back-to-back sessions</Label>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Extra Notes */}
+                        <div className="space-y-2 pt-2 border-t mt-4">
+                            <Label>Notes to AI (Optional)</Label>
+                            <Input placeholder="e.g. Keep mornings free for gym, cram hard for Mathematics this week..." value={genNotes} onChange={(e) => setGenNotes(e.target.value)} />
+                        </div>
+
+                        {/* Filters */}
+
+                        <div className="space-y-3">
+                            <Label>Subject Filter (Optional)</Label>
+                            {uniqueSubjects.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-3 p-3 border rounded-md bg-muted/20">
+                                    {uniqueSubjects.map(subject => (
+                                        <div key={subject} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`subject-${subject}`}
+                                                checked={genSubjectFilter.includes(subject)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        setGenSubjectFilter(prev => [...prev, subject]);
+                                                    } else {
+                                                        setGenSubjectFilter(prev => prev.filter(s => s !== subject));
+                                                    }
+                                                }}
+                                            />
+                                            <Label
+                                                htmlFor={`subject-${subject}`}
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                            >
+                                                {subject}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground italic">No subjects found in your topics. Generate quizzes or add topics to filter by subject.</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">Leave all unchecked to include all subjects.</p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label>Topic Filter (Optional)</Label>
+                            {uniqueTopics.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 border rounded-md bg-muted/20">
+                                    {uniqueTopics.map(topic => (
+                                        <div key={topic} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`topic-${topic}`}
+                                                checked={genTopicFilter.includes(topic)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        setGenTopicFilter(prev => [...prev, topic]);
+                                                    } else {
+                                                        setGenTopicFilter(prev => prev.filter(t => t !== topic));
+                                                    }
+                                                }}
+                                            />
+                                            <Label
+                                                htmlFor={`topic-${topic}`}
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap"
+                                                title={topic}
+                                            >
+                                                {topic}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground italic">No topics found. Add topics first.</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">Leave all unchecked to include all topics.</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setGenerateOptionsModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleExecuteAI} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            Generate with AI
                         </Button>
                     </DialogFooter>
                 </DialogContent>

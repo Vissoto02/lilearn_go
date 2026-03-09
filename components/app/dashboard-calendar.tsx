@@ -1,5 +1,3 @@
-'use client';
-
 import { CalendarWidget } from '@/components/calendar';
 
 /**

@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/app/empty-state';
 import { LoadingSkeleton } from '@/components/app/loading-skeleton';
 import { DashboardCalendar } from '@/components/app/dashboard-calendar';
 import { DashboardUpload } from '@/components/app/dashboard-upload';
+import { WeeklyTimetableGrid } from '@/components/planner/WeeklyTimetableGrid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import {
     TrendingDown,
     CheckCircle2,
     AlertCircle,
+    CalendarDays,
 } from 'lucide-react';
 import { calculateStreak, formatDate } from '@/lib/streak-calculator';
 import { getWeakestTopics } from '@/lib/weakness-calculator';
@@ -241,6 +243,27 @@ export default async function DashboardPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Weekly Timetable Grid */}
+            <div className="pt-4 space-y-4">
+                <Card className="bg-gradient-to-r from-teal-500/10 to-emerald-500/10 border-teal-500/20 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-teal-500/20 rounded-full shrink-0">
+                            <CalendarDays className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-medium text-teal-900 dark:text-teal-100">Plan Your Schedule</h3>
+                            <p className="text-sm text-teal-700 dark:text-teal-300">Insert your timetable or generate an adaptive study plan</p>
+                        </div>
+                    </div>
+                    <Button asChild variant="outline" className="shrink-0 border-teal-500/30 hover:bg-teal-50 dark:hover:bg-teal-950/50">
+                        <Link href="/app/planner">
+                            Go to Planner <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                    </Button>
+                </Card>
+                <WeeklyTimetableGrid />
+            </div>
         </div>
     );
 }

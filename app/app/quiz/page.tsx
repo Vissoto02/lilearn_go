@@ -11,6 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { Quiz, QuizQuestion, QuizAttempt } from '@/lib/types';
@@ -32,6 +35,7 @@ import {
     XCircle,
     ArrowRight,
     BarChart3,
+    Pencil,
 } from 'lucide-react';
 
 // ============================================================================
@@ -128,6 +132,8 @@ function QuizPageContent() {
     const [quizzes, setQuizzes] = useState<QuizWithMeta[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterSubject, setFilterSubject] = useState<string>('all');
+    const [filterTopic, setFilterTopic] = useState<string>('all');
 
     // View state
     const [pageView, setPageView] = useState<PageView>('list');
@@ -135,6 +141,12 @@ function QuizPageContent() {
     const [currentQuestions, setCurrentQuestions] = useState<QuizQuestion[]>([]);
     const [attemptHistory, setAttemptHistory] = useState<AttemptGroup[]>([]);
     const [loadingDetail, setLoadingDetail] = useState(false);
+
+    // Edit state
+    const [isEditingMeta, setIsEditingMeta] = useState(false);
+    const [editSubject, setEditSubject] = useState('');
+    const [editTopic, setEditTopic] = useState('');
+    const [savingMeta, setSavingMeta] = useState(false);
 
     // ========================================================================
     // Data Fetching
@@ -404,19 +416,71 @@ function QuizPageContent() {
         }
     };
 
+    const handleOpenEditMeta = () => {
+        if (!selectedQuiz) return;
+        setEditSubject(selectedQuiz.subject);
+        setEditTopic(selectedQuiz.topic);
+        setIsEditingMeta(true);
+    };
+
+    const handleSaveMeta = async () => {
+        if (!selectedQuiz) return;
+        setSavingMeta(true);
+        const supabase = createClient();
+        const { error } = await supabase
+            .from('quizzes')
+            .update({ subject: editSubject.trim(), topic: editTopic.trim() })
+            .eq('id', selectedQuiz.id);
+
+        setSavingMeta(false);
+
+        if (error) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
+            return;
+        }
+
+        const updatedQuiz = { ...selectedQuiz, subject: editSubject.trim(), topic: editTopic.trim() };
+        setSelectedQuiz(updatedQuiz);
+        setQuizzes(prev => prev.map(q => q.id === updatedQuiz.id ? updatedQuiz : q));
+        setIsEditingMeta(false);
+        toast({ title: 'Quiz updated' });
+    };
+
     // ========================================================================
     // Filtering
     // ========================================================================
 
+    const uniqueSubjects = useMemo(() => {
+        return Array.from(new Set(quizzes.map(q => q.subject))).filter(Boolean).sort();
+    }, [quizzes]);
+
+    const uniqueTopics = useMemo(() => {
+        let baseQuizzes = quizzes;
+        if (filterSubject !== 'all') {
+            baseQuizzes = baseQuizzes.filter(q => q.subject === filterSubject);
+        }
+        return Array.from(new Set(baseQuizzes.map(q => q.topic))).filter(Boolean).sort();
+    }, [quizzes, filterSubject]);
+
+    // When subject changes, reset topic if it's no longer valid
+    useEffect(() => {
+        if (filterSubject !== 'all' && filterTopic !== 'all') {
+            const hasTopic = quizzes.some(q => q.subject === filterSubject && q.topic === filterTopic);
+            if (!hasTopic) setFilterTopic('all');
+        }
+    }, [filterSubject, filterTopic, quizzes]);
+
     const filteredQuizzes = useMemo(() => {
-        if (!searchQuery.trim()) return quizzes;
-        const q = searchQuery.toLowerCase();
-        return quizzes.filter(
-            quiz =>
-                quiz.topic.toLowerCase().includes(q) ||
-                quiz.subject.toLowerCase().includes(q)
-        );
-    }, [quizzes, searchQuery]);
+        return quizzes.filter(quiz => {
+            if (filterSubject !== 'all' && quiz.subject !== filterSubject) return false;
+            if (filterTopic !== 'all' && quiz.topic !== filterTopic) return false;
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                return quiz.topic.toLowerCase().includes(q) || quiz.subject.toLowerCase().includes(q);
+            }
+            return true;
+        });
+    }, [quizzes, searchQuery, filterSubject, filterTopic]);
 
     // ========================================================================
     // Render: Loading
@@ -509,6 +573,9 @@ function QuizPageContent() {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <h1 className="text-xl sm:text-2xl font-bold">{selectedQuiz.topic}</h1>
+                                    <Button variant="ghost" size="sm" onClick={handleOpenEditMeta} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0">
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
                                     {selectedQuiz.is_new && (
                                         <Badge className="gap-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0">
                                             <Sparkles className="h-3 w-3" />
@@ -626,6 +693,44 @@ function QuizPageContent() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Edit Quiz Meta Dialog */}
+                <Dialog open={isEditingMeta} onOpenChange={setIsEditingMeta}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Edit Quiz Details</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="editSubject">Subject</Label>
+                                <Input
+                                    id="editSubject"
+                                    value={editSubject}
+                                    onChange={(e) => setEditSubject(e.target.value)}
+                                    placeholder="e.g. History, Mathematics"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="editTopic">Topic</Label>
+                                <Input
+                                    id="editTopic"
+                                    value={editTopic}
+                                    onChange={(e) => setEditTopic(e.target.value)}
+                                    placeholder="e.g. World War II, Algebra"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsEditingMeta(false)} disabled={savingMeta}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSaveMeta} disabled={savingMeta}>
+                                {savingMeta ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Save Changes
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         );
     }
@@ -653,15 +758,42 @@ function QuizPageContent() {
                 />
             ) : (
                 <>
-                    {/* Search Bar */}
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search quizzes by topic or subject..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 bg-muted/50 border-muted-foreground/10"
-                        />
+                    {/* Filters & Search */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search quizzes..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 h-10 bg-muted/50 border-muted-foreground/10"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <Select value={filterSubject} onValueChange={setFilterSubject}>
+                                <SelectTrigger className="w-[140px] h-10 bg-muted/50">
+                                    <SelectValue placeholder="Subject" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Subjects</SelectItem>
+                                    {uniqueSubjects.map(subject => (
+                                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={filterTopic} onValueChange={setFilterTopic} disabled={!uniqueTopics.length}>
+                                <SelectTrigger className="w-[140px] h-10 bg-muted/50">
+                                    <SelectValue placeholder="Topic" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Topics</SelectItem>
+                                    {uniqueTopics.map(topic => (
+                                        <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     {/* Quiz Grid */}

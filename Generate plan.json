@@ -1,0 +1,327 @@
+{
+  "name": "Generate plan",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-study-plan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8dfbbc8b-373f-4069-b718-c3f38d0e4174",
+      "name": "Receive Planner Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        304
+      ],
+      "webhookId": "0e91d60d-4c42-4262-ac3d-c22c7a9592f0"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "user_id",
+              "value": "={{ $json.body.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "subjects",
+              "value": "={{ $json.body.subjects }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "free_time_slots",
+              "value": "={{ $json.body.free_time_slots }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "existing_events",
+              "value": "={{ $json.body.existing_events }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "deadlines",
+              "value": "={{ $json.body.deadlines }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "settings",
+              "value": "={{ $json.body.settings }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "28a2aaba-5bbe-48c2-bec6-d4673ff745a6",
+      "name": "Normalize Planner Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a study planner AI. Generate an optimal study schedule based on the provided data. Follow these rules strictly:\n\n1. Use ONLY the provided free_time_slots - do not schedule outside these times\n2. Do NOT overlap with existing_events\n3. Prioritize weaker subjects (lower performance scores) with more study time\n4. Respect all deadlines - schedule more intensive study sessions before deadline dates\n5. Follow the user settings for plan duration, target study hours, study intensity, and preferred study times\n6. Each study session should have a clear reason explaining why it was scheduled\n\nReturn ONLY valid JSON matching the exact structure specified in the output schema."
+        }
+      },
+      "id": "5ce0aeac-5fc6-45d3-a935-3e656b0b9835",
+      "name": "Generate Study Plan",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        704,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "06b16b80-2833-4c13-8bfa-913b57d3a231",
+      "name": "Gemini Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        736
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Fx0lcRveU9gFQVYY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"study_plan\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"date\": {\n            \"type\": \"string\",\n            \"description\": \"Date in YYYY-MM-DD format\"\n          },\n          \"start_time\": {\n            \"type\": \"string\",\n            \"description\": \"Start time in HH:MM format\"\n          },\n          \"end_time\": {\n            \"type\": \"string\",\n            \"description\": \"End time in HH:MM format\"\n          },\n          \"subject\": {\n            \"type\": \"string\",\n            \"description\": \"Subject name\"\n          },\n          \"topic\": {\n            \"type\": [\"string\", \"null\"],\n            \"description\": \"Specific topic or null\"\n          },\n          \"reason\": {\n            \"type\": \"string\",\n            \"description\": \"Explanation for why this session was scheduled\"\n          }\n        },\n        \"required\": [\"date\", \"start_time\", \"end_time\", \"subject\", \"topic\", \"reason\"]\n      }\n    }\n  },\n  \"required\": [\"study_plan\"]\n}",
+        "autoFix": true
+      },
+      "id": "825fbb93-df4b-4738-a7a6-b24aaca44774",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        784,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "data",
+              "value": "={{ $json.output }}",
+              "type": "object"
+            },
+            {
+              "id": "id-3",
+              "name": "message",
+              "value": "Study plan generated successfully",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "94837c97-1f04-43a2-ae2a-a62a8110b365",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1152,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "error",
+              "value": "Failed to generate study plan",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "message",
+              "value": "The AI was unable to generate a valid study plan. Please check your input data and try again.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a81ea1ac-9b69-415b-9fa1-6dc42242e0b7",
+      "name": "Format Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "bbdc9616-6697-40eb-a277-ed5328b68cf1",
+      "name": "Return Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1376,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "f95cb7b5-321e-4739-83fa-0a51c16a57ae",
+      "name": "Return Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        480,
+        736
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Planner Request": {
+      "main": [
+        [
+          {
+            "node": "Normalize Planner Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Planner Input": {
+      "main": [
+        [
+          {
+            "node": "Generate Study Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Study Plan",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Study Plan",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Study Plan": {
+      "main": [
+        [
+          {
+            "node": "Format Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Response": {
+      "main": [
+        [
+          {
+            "node": "Return Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error Response": {
+      "main": [
+        [
+          {
+            "node": "Return Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "73a9ee85-5ff0-4c6d-8388-ca8b9859910b",
+  "meta": {
+    "instanceId": "7f77dde16d03ffee9a7ef8b39cd458ce6dcd15ee57890e5fed2a214a6f3de7f4"
+  },
+  "id": "5l9svQp14pUfg8ww",
+  "tags": []
+}
