@@ -127,6 +127,8 @@ export default function PlannerPage() {
 
     // AI Generation state
     const [previewEvents, setPreviewEvents] = useState<any[]>([]);
+    const [previewReasoning, setPreviewReasoning] = useState<any>(null);
+    const [previewExplanation, setPreviewExplanation] = useState<string>('');
     const [generateOptionsModalOpen, setGenerateOptionsModalOpen] = useState(false);
 
     // New Advanced AI Generator State
@@ -308,6 +310,29 @@ export default function PlannerPage() {
             }));
 
             setPreviewEvents(mappedPreview);
+
+            if (data.reasoning) {
+                setPreviewReasoning(data.reasoning);
+                let text = `This plan focuses more on ${data.reasoning.main_focus_subject || 'your subjects evenly'}`;
+                if (data.reasoning.main_focus_topic) {
+                    text += `, especially ${data.reasoning.main_focus_topic},`;
+                }
+                if (data.reasoning.focus_reason) {
+                    text += ` because of ${data.reasoning.focus_reason.toLowerCase()}.`;
+                } else {
+                    text += `.`;
+                }
+                text += ` Sessions are scheduled `;
+                if (data.reasoning.time_preference_used) {
+                    text += `mostly in the ${data.reasoning.time_preference_used} based on your preference and `;
+                }
+                text += `${data.reasoning.schedule_style.toLowerCase()}.`;
+                setPreviewExplanation(text);
+            } else {
+                setPreviewReasoning(null);
+                setPreviewExplanation('');
+            }
+
             toast({
                 title: 'Plan generated!',
                 description: `Created ${mappedPreview.length} study sessions. Review and save them in the timetable.`,
@@ -358,6 +383,8 @@ export default function PlannerPage() {
 
             toast({ title: 'Success', description: 'AI study plan saved to timetable.' });
             setPreviewEvents([]);
+            setPreviewReasoning(null);
+            setPreviewExplanation('');
             setCalendarRefreshKey(prev => prev + 1);
         } catch (err: any) {
             toast({ title: 'Error saving plan', description: err.message, variant: 'destructive' });
@@ -595,11 +622,17 @@ export default function PlannerPage() {
                                 referenceDate={weekStart}
                                 refreshKey={calendarRefreshKey}
                                 previewEvents={previewEvents}
-                                onClearPreview={() => setPreviewEvents([])}
+                                onClearPreview={() => {
+                                    setPreviewEvents([]);
+                                    setPreviewReasoning(null);
+                                    setPreviewExplanation('');
+                                }}
                                 onSavePreview={handleSavePreview}
                                 onRegeneratePreview={() => setGenerateOptionsModalOpen(true)}
                                 savingPreview={savingPreview}
                                 previewFocusMode={genFocusMode}
+                                previewReasoning={previewReasoning}
+                                previewExplanation={previewExplanation}
                             />
 
                             {/* Study Plan Tasks (below the grid) */}

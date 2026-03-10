@@ -9,6 +9,14 @@ export interface GeneratedSession {
     reason: string;
 }
 
+export interface PlanReasoning {
+    main_focus_subject: string | null;
+    main_focus_topic: string | null;
+    focus_reason: string;
+    time_preference_used: string | null;
+    schedule_style: string;
+}
+
 export interface PlannerContextPayload {
     planning_mode: 'number_of_weeks' | 'until_date';
     number_of_weeks: number | null;
@@ -30,7 +38,7 @@ export interface PlannerContextPayload {
     deadlines: any[];
 }
 
-export async function generatePlanWithGemini(context: PlannerContextPayload): Promise<GeneratedSession[]> {
+export async function generatePlanWithGemini(context: PlannerContextPayload): Promise<{ study_plan: GeneratedSession[], reasoning: PlanReasoning }> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         throw new Error('GEMINI_API_KEY is not defined in environment variables');
@@ -81,9 +89,20 @@ Rules strictly follow:
                             },
                             required: ['date', 'start_time', 'end_time', 'subject', 'reason']
                         }
+                    },
+                    reasoning: {
+                        type: 'OBJECT',
+                        properties: {
+                            main_focus_subject: { type: 'STRING', nullable: true },
+                            main_focus_topic: { type: 'STRING', nullable: true },
+                            focus_reason: { type: 'STRING' },
+                            time_preference_used: { type: 'STRING', nullable: true },
+                            schedule_style: { type: 'STRING' }
+                        },
+                        required: ['focus_reason', 'schedule_style']
                     }
                 },
-                required: ['study_plan']
+                required: ['study_plan', 'reasoning']
             }
         }
     });
@@ -96,9 +115,19 @@ Rules strictly follow:
     try {
         const parsed = JSON.parse(text);
         if (parsed.study_plan && Array.isArray(parsed.study_plan)) {
-            return validateGeneratedPlan(parsed.study_plan, context.existing_events, context.max_sessions_per_day || 2);
+            const validPlan = validateGeneratedPlan(parsed.study_plan, context.existing_events, context.max_sessions_per_day || 2);
+            return {
+                study_plan: validPlan,
+                reasoning: parsed.reasoning || {
+                    main_focus_subject: null,
+                    main_focus_topic: null,
+                    focus_reason: 'Balanced learning',
+                    time_preference_used: null,
+                    schedule_style: 'Spread accurately based on constraints'
+                }
+            };
         }
-        return [];
+        throw new Error("Missing study_plan array in response");
     } catch (e) {
         throw new Error('Failed to parse AI JSON response');
     }

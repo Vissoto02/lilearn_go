@@ -26,6 +26,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/lib/types';
@@ -35,6 +36,7 @@ import {
     Trash2,
     Loader2,
     Save,
+    Sparkles,
 } from 'lucide-react';
 
 const TIMEZONES = [
@@ -61,6 +63,7 @@ export default function SettingsPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [timezone, setTimezone] = useState('UTC');
+    const [aiInsightEnabled, setAiInsightEnabled] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -82,6 +85,20 @@ export default function SettingsPage() {
             if (profile) {
                 setName(profile.name || '');
                 setTimezone(profile.timezone || 'UTC');
+            }
+
+            // Fetch AI Insight enabled setting
+            const { data: settings } = await supabase
+                .from('user_settings')
+                .select('ai_daily_insight_enabled')
+                .eq('user_id', user.id)
+                .single();
+
+            if (settings) {
+                setAiInsightEnabled(settings.ai_daily_insight_enabled);
+            } else {
+                // record might not exist, default is false
+                setAiInsightEnabled(false);
             }
         }
         setLoading(false);
@@ -108,10 +125,26 @@ export default function SettingsPage() {
                 variant: 'destructive',
             });
         } else {
-            toast({
-                title: 'Saved',
-                description: 'Your profile has been updated',
-            });
+            // Update AI settings
+            const { error: settingsError } = await supabase
+                .from('user_settings')
+                .upsert({
+                    user_id: user.id,
+                    ai_daily_insight_enabled: aiInsightEnabled
+                });
+
+            if (settingsError) {
+                toast({
+                    title: 'Error',
+                    description: 'Failed to save AI preferences',
+                    variant: 'destructive'
+                });
+            } else {
+                toast({
+                    title: 'Saved',
+                    description: 'Your settings have been updated',
+                });
+            }
         }
         setSaving(false);
     };
@@ -270,6 +303,34 @@ export default function SettingsPage() {
                         )}
                         Save Changes
                     </Button>
+                </CardContent>
+            </Card>
+
+            {/* AI Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        AI Preferences
+                    </CardTitle>
+                    <CardDescription>
+                        Control how LiLearn's AI helps you
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="ai-insight" className="text-base">AI Learning Insights</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Receive daily AI analysis of your quiz performance and study recommendations.
+                            </p>
+                        </div>
+                        <Switch
+                            id="ai-insight"
+                            checked={aiInsightEnabled}
+                            onCheckedChange={setAiInsightEnabled}
+                        />
+                    </div>
                 </CardContent>
             </Card>
 

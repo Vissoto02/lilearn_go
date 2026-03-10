@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/app/empty-state';
 import { LoadingSkeleton } from '@/components/app/loading-skeleton';
 import { DashboardCalendar } from '@/components/app/dashboard-calendar';
 import { DashboardUpload } from '@/components/app/dashboard-upload';
+import { AIDailyInsight } from '@/components/app/ai-daily-insight';
 import { WeeklyTimetableGrid } from '@/components/planner/WeeklyTimetableGrid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +108,8 @@ export default async function DashboardPage() {
             <Suspense fallback={<LoadingSkeleton />}>
                 <DashboardUpload />
             </Suspense>
+
+            <AIDailyInsight />
 
             {/* Quick Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

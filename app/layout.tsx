@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
+import { ChatLauncher } from "@/components/chat/chat-launcher";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -53,6 +54,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <ChatLauncher />
         </ThemeProvider>
       </body>
     </html>

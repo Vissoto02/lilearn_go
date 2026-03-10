@@ -145,6 +145,8 @@ interface WeeklyTimetableGridProps {
     onRegeneratePreview?: () => void;
     savingPreview?: boolean;
     previewFocusMode?: string;
+    previewExplanation?: string;
+    previewReasoning?: any;
 }
 
 export function WeeklyTimetableGrid({
@@ -157,6 +159,8 @@ export function WeeklyTimetableGrid({
     onRegeneratePreview,
     savingPreview = false,
     previewFocusMode,
+    previewExplanation,
+    previewReasoning,
 }: WeeklyTimetableGridProps) {
     const { toast } = useToast();
     const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -577,18 +581,48 @@ export function WeeklyTimetableGrid({
             {/* ============ Header ============ */}
             {previewEvents.length > 0 ? (
                 <div className="flex items-center justify-between px-4 py-3 border-b border-indigo-500/30 bg-indigo-500/10 dark:bg-indigo-950/30">
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-indigo-500 animate-pulse" />
-                        <h3 className="text-base font-semibold text-indigo-900 dark:text-indigo-200">
-                            AI Plan Generated ({previewEvents.length} sessions)
-                        </h3>
-                        {previewFocusMode && (
-                            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 ml-2">
-                                {previewFocusMode === 'weak_subjects' ? 'Weak Subjects' : 'Balanced'}
-                            </span>
+                    <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-indigo-500 animate-pulse shrink-0" />
+                            <h3 className="text-base font-semibold text-indigo-900 dark:text-indigo-200">
+                                AI Plan Generated ({previewEvents.length} sessions)
+                            </h3>
+                            {previewFocusMode && (
+                                <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 ml-2">
+                                    {previewFocusMode === 'weak_subjects' ? 'Weak Subjects' : 'Balanced'}
+                                </span>
+                            )}
+                        </div>
+                        {previewExplanation && (
+                            <p className="text-sm text-indigo-800 dark:text-indigo-300 mt-1 max-w-2xl leading-relaxed">
+                                {previewExplanation}
+                            </p>
                         )}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
+                        {previewReasoning && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    const message = `Explain my generated study plan.`;
+                                    window.dispatchEvent(new CustomEvent("openLiLearnChat", {
+                                        detail: {
+                                            message,
+                                            context: {
+                                                reasoning: previewReasoning,
+                                                study_plan: previewEvents
+                                            }
+                                        }
+                                    }));
+                                }}
+                                disabled={savingPreview}
+                                className="bg-indigo-100 dark:bg-indigo-900/50 border-indigo-200 hover:bg-indigo-200 text-indigo-700 dark:text-indigo-300"
+                            >
+                                <Sparkles className="mr-2 h-3.5 w-3.5" />
+                                Ask AI for Full Explanation
+                            </Button>
+                        )}
                         {onRegeneratePreview && (
                             <Button
                                 variant="outline"
@@ -598,7 +632,7 @@ export function WeeklyTimetableGrid({
                                 className="bg-white/50 dark:bg-black/20 border-indigo-200/50 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
                             >
                                 <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                                Options/Regenerate
+                                Regenerate
                             </Button>
                         )}
                         <Button
@@ -617,7 +651,7 @@ export function WeeklyTimetableGrid({
                             className="bg-indigo-600 hover:bg-indigo-700 text-white"
                         >
                             {savingPreview ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                            Confirm & Save
+                            Accept Plan
                         </Button>
                     </div>
                 </div>

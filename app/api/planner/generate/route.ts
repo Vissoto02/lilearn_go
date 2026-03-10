@@ -122,11 +122,12 @@ export async function POST(request: Request) {
         };
 
         // 5. Call Gemini AI helper
-        const generatedSessions = await generatePlanWithGemini(payload);
+        const result = await generatePlanWithGemini(payload);
 
         return NextResponse.json({
             success: true,
-            generated_plan: generatedSessions
+            generated_plan: result.study_plan,
+            reasoning: result.reasoning
         });
 
     } catch (error: any) {
