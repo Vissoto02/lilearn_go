@@ -876,10 +876,10 @@ export function WeeklyTimetableGrid({
                                     </div>
                                 );
                             })}
-                        </div>
 
-                        {/* Current time indicator */}
-                        <CurrentTimeIndicator weekDays={weekDays} />
+                            {/* Current time indicator - moved inside the offset container */}
+                            <CurrentTimeIndicator weekDays={weekDays} />
+                        </div>
                     </div>
                 </div>
             </div>

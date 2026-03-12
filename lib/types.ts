@@ -13,9 +13,17 @@ export interface Profile {
     created_at: string;
 }
 
+export interface Subject {
+    id: string;
+    user_id: string;
+    name: string;
+    created_at: string;
+}
+
 export interface Topic {
     id: string;
     user_id: string;
+    subject_id: string | null;
     subject: string;
     topic: string;
     difficulty_pref: Difficulty;
@@ -129,6 +137,59 @@ export interface DayStatus {
     date: string;
     checkin: boolean;
     minutes: number;
+}
+
+// Gamification types
+export type UserTitle = 'Amateur' | 'Scholar' | 'Study Master';
+export type RevisionSessionStatus = 'active' | 'validating' | 'completed' | 'expired' | 'skipped';
+export type ValidationType = 'quiz' | 'file_upload';
+
+export interface UserStats {
+    user_id: string;
+    total_points: number;
+    title: UserTitle;
+    best_improvement_pct: number;
+    updated_at: string;
+}
+
+export interface RevisionSession {
+    id: string;
+    user_id: string;
+    calendar_event_id: string | null;
+    subject: string;
+    topic: string | null;
+    subject_id: string | null;
+    is_weak_subject: boolean;
+    started_at: string;
+    ended_at: string | null;
+    duration_minutes: number | null;
+    validation_type: ValidationType | null;
+    validation_quiz_id: string | null;
+    validation_score: number | null;
+    points_earned: number;
+    is_personal_best: boolean;
+    status: RevisionSessionStatus;
+    created_at: string;
+}
+
+export interface FileValidation {
+    id: string;
+    session_id: string;
+    user_id: string;
+    file_path: string;
+    file_name: string;
+    file_size_bytes: number;
+    note: string;
+    points_earned: number;
+    created_at: string;
+}
+
+export interface LeaderboardEntry {
+    user_id: string;
+    display_name: string;
+    total_points: number;
+    title: UserTitle;
+    rank: number;
 }
 
 // Form input types

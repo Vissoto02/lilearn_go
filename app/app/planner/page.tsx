@@ -130,6 +130,7 @@ export default function PlannerPage() {
     const [previewReasoning, setPreviewReasoning] = useState<any>(null);
     const [previewExplanation, setPreviewExplanation] = useState<string>('');
     const [generateOptionsModalOpen, setGenerateOptionsModalOpen] = useState(false);
+    const [todayEvents, setTodayEvents] = useState<any[]>([]);
 
     // New Advanced AI Generator State
     const [genPlanningMode, setGenPlanningMode] = useState<'number_of_weeks' | 'until_date'>('number_of_weeks');
@@ -143,7 +144,6 @@ export default function PlannerPage() {
     const [genIntensity, setGenIntensity] = useState<'light' | 'normal' | 'intensive'>('normal');
     const [genPreferredDays, setGenPreferredDays] = useState<'weekdays' | 'weekends' | 'all'>('all');
     const [genAvoidB2B, setGenAvoidB2B] = useState<boolean>(true);
-    const [genNotes, setGenNotes] = useState<string>('');
     const [genSubjectFilter, setGenSubjectFilter] = useState<string[]>([]);
     const [genTopicFilter, setGenTopicFilter] = useState<string[]>([]);
     const [savingPreview, setSavingPreview] = useState(false);
@@ -176,10 +176,13 @@ export default function PlannerPage() {
 
         const weekStartStr = formatWeekStartDate(weekStart);
 
+        const todayDateStr = formatWeekStartDate(new Date());
+
         const [
             { data: planData },
             { data: availabilityData },
             { data: topicsData },
+            { data: eventsData },
         ] = await Promise.all([
             supabase
                 .from('plans')
@@ -189,6 +192,12 @@ export default function PlannerPage() {
                 .single(),
             supabase.from('availability').select('*').eq('user_id', user.id),
             supabase.from('topics').select('*').eq('user_id', user.id),
+            supabase.from('calendar_events')
+                .select('*')
+                .eq('user_id', user.id)
+                .gte('start_time', `${todayDateStr}T00:00:00`)
+                .lte('end_time', `${todayDateStr}T23:59:59`)
+                .order('start_time', { ascending: true })
         ]);
 
         if (planData) {
@@ -197,6 +206,7 @@ export default function PlannerPage() {
         }
         if (availabilityData) setAvailability(availabilityData);
         if (topicsData) setTopics(topicsData);
+        if (eventsData) setTodayEvents(eventsData);
 
         setLoading(false);
     };
@@ -282,7 +292,6 @@ export default function PlannerPage() {
                 topic_filter: genTopicFilter.length > 0 ? genTopicFilter : null,
                 preferred_days: genPreferredDays,
                 avoid_back_to_back_sessions: genAvoidB2B,
-                notes_to_ai: genNotes || null,
             };
 
             const res = await fetch('/api/planner/generate', {
@@ -303,7 +312,7 @@ export default function PlannerPage() {
                 start_time: `${s.date}T${s.start_time}:00+08:00`,
                 end_time: `${s.date}T${s.end_time}:00+08:00`,
                 subject: s.subject,
-                color: '#6366f1',
+                color: '#c026d3',
                 description: `📚 ${s.topic || 'General'}\n\n🤖 AI Reason: ${s.reason}`,
                 is_locked: false,
                 source: 'ai'
@@ -495,7 +504,23 @@ export default function PlannerPage() {
     }
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in relative">
+            {/* AI Generating Full-Screen Overlay */}
+            {generating && (
+                <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center gap-4 max-w-sm text-center p-6 bg-card border shadow-xl rounded-2xl animate-in zoom-in-95">
+                        <div className="p-4 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 mb-2">
+                            <Sparkles className="h-10 w-10 text-indigo-500 animate-pulse" />
+                        </div>
+                        <h2 className="text-xl font-bold tracking-tight">Crafting Your Schedule</h2>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            Please hold on! AI is computing the perfect study times based on your availability and weaknesses. Don't click away or refresh the page.
+                        </p>
+                        <Loader2 className="w-6 h-6 animate-spin mt-2 text-primary" />
+                    </div>
+                </div>
+            )}
+
             <PageHeader
                 title="Planner"
                 description="Your adaptive weekly study schedule"
@@ -648,6 +673,7 @@ export default function PlannerPage() {
                         <TabsContent value="today" className="mt-4">
                             <TodayView
                                 tasks={tasks}
+                                todayEvents={todayEvents}
                                 onTaskStatusChange={handleTaskStatusChange}
                             />
                         </TabsContent>
@@ -864,11 +890,7 @@ export default function PlannerPage() {
                             </div>
                         </div>
 
-                        {/* Extra Notes */}
-                        <div className="space-y-2 pt-2 border-t mt-4">
-                            <Label>Notes to AI (Optional)</Label>
-                            <Input placeholder="e.g. Keep mornings free for gym, cram hard for Mathematics this week..." value={genNotes} onChange={(e) => setGenNotes(e.target.value)} />
-                        </div>
+
 
                         {/* Filters */}
 

@@ -11,16 +11,21 @@ import {
     Upload,
     Settings,
     GraduationCap,
+    Swords,
+    Medal,
 } from 'lucide-react';
 
 const navigation = [
     { name: 'Dashboard', href: '/app', icon: LayoutDashboard },
     { name: 'Quiz', href: '/app/quiz', icon: BookOpen },
+    { name: 'Revision', href: '/app/revision', icon: Swords },
     { name: 'Planner', href: '/app/planner', icon: Calendar },
     { name: 'Habits', href: '/app/habits', icon: Target },
+    { name: 'Leaderboard', href: '/app/leaderboard', icon: Medal },
     { name: 'Upload', href: '/app/upload', icon: Upload },
     { name: 'Settings', href: '/app/settings', icon: Settings },
 ];
+
 
 interface SidebarProps {
     className?: string;

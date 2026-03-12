@@ -22,7 +22,6 @@ export async function POST(request: Request) {
             topic_filter,
             preferred_days,
             avoid_back_to_back_sessions,
-            notes_to_ai,
         } = body;
 
         if (!user_id) {
@@ -96,7 +95,6 @@ export async function POST(request: Request) {
             topic_filter: topic_filter || null,
             preferred_days: preferred_days || 'all',
             avoid_back_to_back_sessions: avoid_back_to_back_sessions ?? true,
-            notes_to_ai: notes_to_ai || null,
             // These are the general weekly available hours
             free_time_slots: (availability || []).map(a => ({
                 day_of_week: a.day_of_week,

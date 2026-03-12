@@ -14,6 +14,7 @@ import type {
     MAX_FILE_SIZE_BYTES,
     SUPPORTED_EXTENSIONS,
 } from '@/lib/uploads/types';
+import { Subject, Topic, Quiz } from '@/lib/types';
 
 // Placeholder webhook secret - replace with env variable
 const N8N_WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET || 'lilearn-webhook-secret-2026';
@@ -395,4 +396,89 @@ export async function deleteUpload(uploadId: string): Promise<{ error?: string }
     revalidatePath('/app/planner');
 
     return {};
+}
+
+// ============================================================================
+// updateQuizMetadata: Update quiz subject/topic and ensure hierarchy exists
+// ============================================================================
+
+export async function updateQuizMetadata(
+    quizId: string, 
+    subjectName: string, 
+    topicName: string
+): Promise<{ success?: boolean; error?: string; topicId?: string }> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { error: 'Unauthorized' };
+
+    try {
+        // 1. Ensure Subject exists
+        let { data: subject, error: subjectError } = await supabase
+            .from('subjects')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('name', subjectName.trim())
+            .maybeSingle();
+
+        if (subjectError) throw subjectError;
+
+        if (!subject) {
+            const { data: newSubject, error: createSubjectError } = await supabase
+                .from('subjects')
+                .insert({ user_id: user.id, name: subjectName.trim() })
+                .select('id')
+                .single();
+            
+            if (createSubjectError) throw createSubjectError;
+            subject = newSubject;
+        }
+
+        // 2. Ensure Topic exists under this Subject
+        let { data: topic, error: topicError } = await supabase
+            .from('topics')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('subject_id', subject.id)
+            .eq('topic', topicName.trim())
+            .maybeSingle();
+        
+        if (topicError) throw topicError;
+
+        if (!topic) {
+            const { data: newTopic, error: createTopicError } = await supabase
+                .from('topics')
+                .insert({ 
+                    user_id: user.id, 
+                    subject_id: subject.id, 
+                    subject: subjectName.trim(), 
+                    topic: topicName.trim() 
+                })
+                .select('id')
+                .single();
+            
+            if (createTopicError) throw createTopicError;
+            topic = newTopic;
+        }
+
+        // 3. Update the Quiz
+        const { error: quizError } = await supabase
+            .from('quizzes')
+            .update({
+                subject: subjectName.trim(),
+                topic: topicName.trim()
+            })
+            .eq('id', quizId)
+            .eq('user_id', user.id);
+
+        if (quizError) throw quizError;
+
+        revalidatePath('/app/upload');
+        revalidatePath('/app/quiz');
+        
+        return { success: true, topicId: topic.id };
+    } catch (err: any) {
+        console.error('Error updating quiz metadata:', err);
+        return { error: err.message || 'Failed to update quiz' };
+    }
 }

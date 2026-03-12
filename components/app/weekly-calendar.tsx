@@ -189,11 +189,12 @@ function TaskItem({ task, onStatusChange }: TaskItemProps) {
 // Today view component
 interface TodayViewProps {
     tasks: PlanTask[];
+    todayEvents?: any[];
     onTaskStatusChange?: (taskId: string, status: 'todo' | 'done' | 'skipped') => void;
     className?: string;
 }
 
-export function TodayView({ tasks, onTaskStatusChange, className }: TodayViewProps) {
+export function TodayView({ tasks, todayEvents = [], onTaskStatusChange, className }: TodayViewProps) {
     const today = formatDateKey(new Date());
 
     const todayTasks = tasks
@@ -205,30 +206,97 @@ export function TodayView({ tasks, onTaskStatusChange, className }: TodayViewPro
     const completed = todayTasks.filter((t) => t.status === 'done').length;
     const total = todayTasks.length;
 
+    const allItems = useMemo(() => {
+        const items: any[] = [];
+        
+        todayTasks.forEach(t => {
+            items.push({
+                type: 'task',
+                id: t.id,
+                title: t.title,
+                time: new Date(t.start_datetime),
+                duration: t.duration_min,
+                topic: t.topic,
+                status: t.status,
+                raw: t
+            });
+        });
+
+        todayEvents.forEach(e => {
+            // events store start_time as 'YYYY-MM-DDTHH:mm:ss' (local time)
+            items.push({
+                type: 'event',
+                id: e.id,
+                title: e.title,
+                time: new Date(e.start_time),
+                duration: null, // we can calc from end_time if needed
+                topic: e.topic_id || e.subject,
+                color: e.color,
+                raw: e
+            });
+        });
+
+        return items.sort((a, b) => a.time.getTime() - b.time.getTime());
+    }, [todayTasks, todayEvents]);
+
     return (
         <Card className={className}>
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                     <span>Today's Plan</span>
                     <Badge variant="outline">
-                        {completed}/{total} done
+                        {completed}/{total} tasks done
                     </Badge>
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                {todayTasks.length === 0 ? (
+                {allItems.length === 0 ? (
                     <p className="text-sm text-muted-foreground italic">
-                        No tasks scheduled for today
+                        No tasks or schedule for today
                     </p>
                 ) : (
                     <div className="space-y-3">
-                        {todayTasks.map((task) => (
-                            <TaskItem
-                                key={task.id}
-                                task={task}
-                                onStatusChange={onTaskStatusChange}
-                            />
-                        ))}
+                        {allItems.map((item) => {
+                            if (item.type === 'task') {
+                                return (
+                                    <TaskItem
+                                        key={`task-${item.id}`}
+                                        task={item.raw}
+                                        onStatusChange={onTaskStatusChange}
+                                    />
+                                );
+                            } else {
+                                const timeStr = formatTime(item.time);
+                                return (
+                                    <div
+                                        key={`event-${item.id}`}
+                                        className="group flex items-start gap-2 rounded-lg border border-border bg-background p-2 text-xs transition-colors"
+                                    >
+                                        <div className="mt-0.5 shrink-0">
+                                            <Circle className="h-4 w-4" style={{ color: item.color || '#6366f1' }} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{item.title}</p>
+                                            <div className="mt-0.5 flex items-center gap-1 text-muted-foreground">
+                                                <Clock className="h-3 w-3" />
+                                                <span>{timeStr}</span>
+                                                {item.raw.event_type && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="capitalize">{item.raw.event_type.replace('_', ' ')}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                            {item.topic && (
+                                                <Badge variant="secondary" className="mt-1 text-[10px]">
+                                                    {item.topic}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            }
+                        })}
                     </div>
                 )}
             </CardContent>

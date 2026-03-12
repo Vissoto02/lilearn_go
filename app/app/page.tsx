@@ -23,6 +23,9 @@ import {
     CheckCircle2,
     AlertCircle,
     CalendarDays,
+    Trophy,
+    Swords,
+    Zap,
 } from 'lucide-react';
 import { calculateStreak, formatDate } from '@/lib/streak-calculator';
 import { getWeakestTopics } from '@/lib/weakness-calculator';
@@ -45,6 +48,7 @@ export default async function DashboardPage() {
         { data: quizAttempts },
         { data: quizzes },
         { data: topics },
+        { data: userStats },
     ] = await Promise.all([
         supabase
             .from('habits')
@@ -71,6 +75,11 @@ export default async function DashboardPage() {
             .from('topics')
             .select('*')
             .eq('user_id', user.id),
+        supabase
+            .from('user_stats')
+            .select('*')
+            .eq('user_id', user.id)
+            .single(),
     ]);
 
     // Calculate streak
@@ -111,8 +120,34 @@ export default async function DashboardPage() {
 
             <AIDailyInsight />
 
+            {/* Revision CTA */}
+            <Card className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border-violet-500/20 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-violet-500/20 rounded-full shrink-0">
+                        <Swords className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div>
+                        <h3 className="font-medium text-violet-900 dark:text-violet-100">Revision Sessions</h3>
+                        <p className="text-sm text-violet-700 dark:text-violet-300">
+                            {userStats ? `${userStats.total_points} pts • ${userStats.title}` : 'Start earning points by completing revision sessions'}
+                        </p>
+                    </div>
+                </div>
+                <Button asChild variant="outline" className="shrink-0 border-violet-500/30 hover:bg-violet-50 dark:hover:bg-violet-950/50">
+                    <Link href="/app/revision">
+                        Start Revision <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            </Card>
+
             {/* Quick Stats */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <StatCard
+                    title="Points"
+                    value={userStats?.total_points || 0}
+                    subtitle={userStats?.title || 'Amateur'}
+                    icon={Trophy}
+                />
                 <StatCard
                     title="Current Streak"
                     value={`${streakData.currentStreak} days`}

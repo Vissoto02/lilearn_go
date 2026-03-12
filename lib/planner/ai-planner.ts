@@ -31,7 +31,6 @@ export interface PlannerContextPayload {
     topic_filter: string | null;
     preferred_days: 'weekdays' | 'weekends' | 'all';
     avoid_back_to_back_sessions: boolean;
-    notes_to_ai: string | null;
     free_time_slots: any[];
     subjects: any[];
     existing_events: any[];
@@ -62,9 +61,8 @@ Rules strictly follow:
 8. SESSION LENGTH: Ideally blocks should be 30 to 90 mins. If preferred_session_length_minutes (${context.preferred_session_length_minutes}) is set, strictly adhere to it unless slot is smaller.
 9. FOCUS: If focus_mode is "weak_subjects", prioritize weaker subjects more frequently. If "balanced", distribute evenly.
 10. FILTERS: If subject_filter is provided (${context.subject_filter ? context.subject_filter.join(', ') : 'none'}), generate sessions ONLY for those subjects. If topic_filter is provided (${context.topic_filter ? context.topic_filter : 'none'}), generate ONLY for those topics.
-11. NOTES: User notes for you: ${context.notes_to_ai || 'None'}
-12. Return ONLY a valid JSON array of objects.
-13. Human-like distribution: Spread sessions out logically across the week, do not cram them all into a single day just because there is free time. Make it a realistic human schedule.`;
+11. Return ONLY a valid JSON array of objects.
+12. Human-like distribution: Spread sessions out logically across the week, do not cram them all into a single day just because there is free time. Make it a realistic human schedule.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
