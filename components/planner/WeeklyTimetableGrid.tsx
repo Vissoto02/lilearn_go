@@ -448,6 +448,15 @@ export function WeeklyTimetableGrid({
 
     const exceedsSemester = semesterEndDate && manualLastDate && manualLastDate > semesterEndDate;
 
+    // Whether the manual schedule form has enough info to submit
+    const canSubmitManual = useMemo(() => {
+        if (manualForm.activityType === 'manual_study' && manualForm.pickerMode === 'select') {
+            // Allow submit when using subject/topic picker even if title is empty
+            return !!(manualForm.topic || manualForm.subject || manualForm.title.trim());
+        }
+        return !!manualForm.title.trim();
+    }, [manualForm.activityType, manualForm.pickerMode, manualForm.subject, manualForm.topic, manualForm.title]);
+
     // Check conflicts in the currently-viewed week for the selected slot
     const slotConflict = useMemo(() => {
         if (!manualDialogOpen) return null;
@@ -1381,7 +1390,7 @@ export function WeeklyTimetableGrid({
                         </Button>
                         <Button
                             onClick={handleSaveManualSchedule}
-                            disabled={manualSaving || !manualForm.title.trim()}
+                            disabled={manualSaving || !canSubmitManual}
                             className="gap-2 bg-teal-600 hover:bg-teal-700"
                         >
                             {manualSaving && <Loader2 className="h-4 w-4 animate-spin" />}

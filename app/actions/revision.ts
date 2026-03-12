@@ -31,12 +31,12 @@ export async function getCurrentStudyBlock(): Promise<{
 
     const now = new Date().toISOString();
 
-    // Find study_block or generated_plan events where current time falls between start and end
+    // Find study_block, manual_study, or generated_plan events where current time falls between start and end
     const { data: events, error } = await supabase
         .from('calendar_events')
         .select('*')
         .eq('user_id', user.id)
-        .in('event_type', ['study_block', 'generated_plan'])
+        .in('event_type', ['study_block', 'manual_study', 'generated_plan'])
         .lte('start_time', now)
         .gte('end_time', now)
         .order('start_time', { ascending: true })
@@ -102,7 +102,7 @@ export async function getTodayStudyBlocks(): Promise<{
         .from('calendar_events')
         .select('*')
         .eq('user_id', user.id)
-        .in('event_type', ['study_block', 'generated_plan'])
+        .in('event_type', ['study_block', 'manual_study', 'generated_plan'])
         .gte('start_time', todayStart.toISOString())
         .lt('end_time', todayEnd.toISOString())
         .order('start_time', { ascending: true });
