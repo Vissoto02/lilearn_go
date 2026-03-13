@@ -114,8 +114,19 @@ export interface Notification {
     type: string;
     scheduled_at: string;
     status: NotificationStatus;
+    title: string | null;
+    message: string | null;
+    related_calendar_event_id: string | null;
+    related_revision_session_id: string | null;
+    link_target: string | null;
+    is_read: boolean;
     created_at: string;
 }
+
+export type StudyNotificationType =
+    | 'study_session_starting_soon'
+    | 'study_session_ready_now'
+    | 'study_session_missed';
 
 // Computed/derived types for UI
 export interface TopicWeakness {

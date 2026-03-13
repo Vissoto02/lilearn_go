@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, Bell, User, LogOut, Sun, Moon } from 'lucide-react';
+import { Menu, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Sidebar } from './sidebar';
 import { createClient } from '@/lib/supabase/client';
+import { NotificationBell } from '@/components/app/notification-bell';
 
 interface TopbarProps {
     userName?: string | null;
@@ -70,14 +71,7 @@ export function Topbar({ userName }: TopbarProps) {
                 </Button>
 
                 {/* Notifications */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Notifications"
-                    className="focus-ring"
-                >
-                    <Bell className="h-5 w-5" />
-                </Button>
+                <NotificationBell />
 
                 {/* User menu */}
                 <DropdownMenu>

@@ -100,13 +100,20 @@ CREATE TABLE IF NOT EXISTS habits (
   UNIQUE(user_id, date)
 );
 
--- Notifications for reminders
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
+  -- When the notification should conceptually fire (for future scheduling use)
   scheduled_at TIMESTAMPTZ NOT NULL,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+  -- Study-session specific metadata
+  title TEXT,
+  message TEXT,
+  related_calendar_event_id UUID,
+  related_revision_session_id UUID,
+  link_target TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

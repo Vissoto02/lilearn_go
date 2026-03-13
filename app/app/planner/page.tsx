@@ -170,6 +170,14 @@ export default function PlannerPage() {
     }, []);
 
     const fetchData = async () => {
+        // Run study-session notification sweep so alerts are ready on planner load
+        try {
+            const { runStudySessionNotificationSweep } = await import('@/app/actions/notifications');
+            await runStudySessionNotificationSweep();
+        } catch (err) {
+            console.error('Failed to run study notification sweep', err);
+        }
+
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
