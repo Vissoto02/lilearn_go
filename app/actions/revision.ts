@@ -286,7 +286,8 @@ export async function getActiveSession(): Promise<{
 export async function completeQuizValidation(
     sessionId: string,
     quizId: string,
-    scorePercent: number
+    scorePercent: number,
+    options?: { usedRetry?: boolean }
 ): Promise<{
     points: number;
     passed: boolean;
@@ -313,6 +314,8 @@ export async function completeQuizValidation(
         return { points: 0, passed: false, isPersonalBest: false, message: '', error: 'Session not found' };
     }
 
+    const usedRetry = options?.usedRetry ?? false;
+
     // Get previous best score for this quiz
     const { data: previousSessions } = await supabase
         .from('revision_sessions')
@@ -327,8 +330,17 @@ export async function completeQuizValidation(
         ? Number(previousSessions[0].validation_score)
         : null;
 
-    // Calculate points
-    const result = calculateQuizPoints(scorePercent, session.is_weak_subject, previousBest);
+    // Calculate points using Validation Hub rules (80% pass, optional half points on retry)
+    const result = calculateQuizPoints(scorePercent, session.is_weak_subject, previousBest, {
+        isValidationHub: true,
+        usedRetry,
+    });
+
+    // Optionally extend duration by 5 minutes when a retry was used
+    const newDurationMinutes =
+        usedRetry
+            ? (session.duration_minutes ?? 0) + 5
+            : session.duration_minutes;
 
     // Update the session
     const { error: updateError } = await supabase
@@ -339,6 +351,7 @@ export async function completeQuizValidation(
             validation_score: scorePercent,
             points_earned: result.points,
             is_personal_best: result.isPersonalBest,
+            duration_minutes: newDurationMinutes,
             status: 'completed',
             ended_at: new Date().toISOString(),
         })

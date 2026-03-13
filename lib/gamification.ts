@@ -58,17 +58,73 @@ export interface QuizPointResult {
     message: string;
 }
 
+export interface QuizPointContext {
+    // When true, apply Validation Hub rules: 80% pass, half points on <80% after retry
+    isValidationHub?: boolean;
+    // Whether the user used their one retry for this validation
+    usedRetry?: boolean;
+}
+
 /**
  * Calculate points earned from a quiz validation
  */
 export function calculateQuizPoints(
     scorePercent: number,
     isWeakSubject: boolean,
-    previousBestScore: number | null
+    previousBestScore: number | null,
+    context?: QuizPointContext
 ): QuizPointResult {
     let points = 0;
     let passed = false;
     let message = '';
+
+    const isValidationHub = context?.isValidationHub ?? false;
+    const usedRetry = context?.usedRetry ?? false;
+
+    // Validation Hub flow: single 80% rule, optional half points on failed retry
+    if (isValidationHub) {
+        const fullPoints = POINTS.QUIZ_WEAK_MASTERY;
+
+        if (scorePercent >= 80) {
+            points = fullPoints;
+            passed = true;
+            message = `Great work! You passed the validation quiz with ${scorePercent}%.`;
+        } else {
+            if (usedRetry) {
+                points = Math.floor(fullPoints / 2);
+                passed = false;
+                message = `You didn't reach 80% after your retry, but you still earned ${points} points for completing the validation.`;
+            } else {
+                points = POINTS.QUIZ_FAIL;
+                passed = false;
+                message = `You scored ${scorePercent}%. Reach at least 80% or use your retry to complete this validation.`;
+            }
+        }
+
+        // Personal best logic still applies
+        let bonusPoints = 0;
+        let isPersonalBest = false;
+
+        if (previousBestScore !== null && scorePercent > previousBestScore) {
+            const improvement = scorePercent - previousBestScore;
+            if (improvement >= THRESHOLDS.PERSONAL_BEST_DELTA) {
+                bonusPoints = POINTS.PERSONAL_BEST_BONUS;
+                isPersonalBest = true;
+                message += ` Personal Best! +${bonusPoints} bonus points! 🏆`;
+            }
+        } else if (previousBestScore === null && passed) {
+            // First time taking this quiz and passed — that's a personal best
+            isPersonalBest = true;
+        }
+
+        return {
+            points: points + bonusPoints,
+            passed,
+            isPersonalBest,
+            bonusPoints,
+            message,
+        };
+    }
 
     if (isWeakSubject) {
         if (scorePercent >= THRESHOLDS.WEAK_SUBJECT_PASS) {

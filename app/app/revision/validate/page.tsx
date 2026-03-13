@@ -18,7 +18,8 @@ import {
     completeFileValidation,
     skipSession,
 } from '@/app/actions/revision';
-import type { RevisionSession, Quiz } from '@/lib/types';
+import type { RevisionSession, Quiz, QuizQuestion } from '@/lib/types';
+import { QuizPlayer, QuizResult } from '@/components/app/quiz-player';
 import {
     Trophy,
     FileUp,
@@ -50,9 +51,12 @@ function ValidationContent() {
     const [loading, setLoading] = useState(true);
     const [session, setSession] = useState<RevisionSession | null>(null);
     const [availableQuizzes, setAvailableQuizzes] = useState<Quiz[]>([]);
-
-    // Quiz completion state
-    const [quizCompleted, setQuizCompleted] = useState(false);
+    const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+    const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+    const [quizRunKey, setQuizRunKey] = useState(0);
+    const [usedRetry, setUsedRetry] = useState(false);
+    const [firstAttemptScore, setFirstAttemptScore] = useState<number | null>(null);
+    const [showRetryPrompt, setShowRetryPrompt] = useState(false);
     const [validating, setValidating] = useState(false);
 
     // File upload state
@@ -113,24 +117,99 @@ function ValidationContent() {
         }
 
         const { data: quizzes } = await quizQuery.order('created_at', { ascending: false });
-        setAvailableQuizzes((quizzes || []) as Quiz[]);
+
+        const quizList = (quizzes || []) as Quiz[];
+
+        if (quizList.length > 0) {
+            // Compute simple accuracy per quiz from all attempts and pick one with latest score < 80
+            const quizIds = quizList.map((q) => q.id);
+            const { data: attempts } = await supabase
+                .from('quiz_attempts')
+                .select('quiz_id,is_correct')
+                .eq('user_id', user.id)
+                .in('quiz_id', quizIds.length ? quizIds : ['__none__']);
+
+            const statsByQuiz: Record<string, { correct: number; total: number }> = {};
+            (attempts || []).forEach((a) => {
+                if (!statsByQuiz[a.quiz_id]) {
+                    statsByQuiz[a.quiz_id] = { correct: 0, total: 0 };
+                }
+                statsByQuiz[a.quiz_id].total += 1;
+                if (a.is_correct) {
+                    statsByQuiz[a.quiz_id].correct += 1;
+                }
+            });
+
+            const candidates = quizList
+                .map((q) => {
+                    const stats = statsByQuiz[q.id];
+                    const score =
+                        stats && stats.total > 0
+                            ? Math.round((stats.correct / stats.total) * 100)
+                            : null;
+                    return { quiz: q, score };
+                })
+                .filter((item) => item.score === null || item.score < 80);
+
+            if (candidates.length > 0) {
+                // Pick the most recently created candidate
+                candidates.sort(
+                    (a, b) =>
+                        new Date(b.quiz.created_at).getTime() -
+                        new Date(a.quiz.created_at).getTime()
+                );
+                setAvailableQuizzes([candidates[0].quiz]);
+            } else {
+                // No quiz below 80% – hide Path A
+                setAvailableQuizzes([]);
+            }
+        } else {
+            setAvailableQuizzes([]);
+        }
 
         setLoading(false);
     };
 
-    // Handle quiz start — navigate to quiz page with return URL
-    const handleStartQuiz = (quizId: string) => {
-        // We'll redirect to the quiz page and pass the session context
-        router.push(`/app/quiz?quizId=${quizId}&revisionSessionId=${sessionId}`);
+    // Handle quiz start — play quiz inline inside Validation Hub
+    const handleStartQuiz = async (quizId: string) => {
+        if (!sessionId) return;
+        const supabase = createClient();
+        const { data: questions, error } = await supabase
+            .from('quiz_questions')
+            .select('*')
+            .eq('quiz_id', quizId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
+            return;
+        }
+
+        if (!questions || questions.length === 0) {
+            toast({
+                title: 'No questions',
+                description: 'This quiz has no questions yet.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setActiveQuizId(quizId);
+        setQuizQuestions(questions as QuizQuestion[]);
+        setUsedRetry(false);
+        setFirstAttemptScore(null);
+        setShowRetryPrompt(false);
+        setQuizRunKey((prev) => prev + 1);
     };
 
-    // Handle quiz completion (called when user returns from quiz)
-    const handleQuizValidation = async (quizId: string, scorePercent: number) => {
+    const finalizeQuizValidation = async (quizId: string, scorePercent: number, retryUsed: boolean) => {
         if (!sessionId) return;
         setValidating(true);
 
         try {
-            const res = await completeQuizValidation(sessionId, quizId, scorePercent);
+            const res = await completeQuizValidation(sessionId, quizId, scorePercent, {
+                usedRetry: retryUsed,
+            });
 
             if (res.error) {
                 toast({ title: 'Error', description: res.error, variant: 'destructive' });
@@ -149,6 +228,27 @@ function ValidationContent() {
         } finally {
             setValidating(false);
         }
+    };
+
+    const handleQuizComplete = async (results: QuizResult[]) => {
+        if (!activeQuizId) return;
+
+        const correctCount = results.filter((r) => r.isCorrect).length;
+        const total = results.length || 1;
+        const scorePercent = Math.round((correctCount / total) * 100);
+
+        // First attempt below 80% → show retry prompt
+        if (!usedRetry && scorePercent < 80) {
+            setFirstAttemptScore(scorePercent);
+            setShowRetryPrompt(true);
+            return;
+        }
+
+        // Either first-attempt pass or retry attempt (with or without 80%)
+        await finalizeQuizValidation(activeQuizId, scorePercent, usedRetry);
+        setActiveQuizId(null);
+        setQuizQuestions([]);
+        setShowRetryPrompt(false);
     };
 
     // Handle file upload
@@ -311,10 +411,7 @@ function ValidationContent() {
                             Path A: Take a Quiz
                         </CardTitle>
                         <CardDescription>
-                            {session.is_weak_subject
-                                ? `Score ≥80% for 100 points (weak subject). Score 60-79% earns partial points.`
-                                : `Score ≥60% to pass and earn 50 points.`
-                            }
+                            Score ≥80% on this quiz to complete validation and earn full points. If you fail once, you'll get one retry with 5 extra minutes of study time; failing again rewards half points.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -338,6 +435,40 @@ function ValidationContent() {
                                 </Button>
                             </div>
                         ))}
+
+                        {activeQuizId && quizQuestions.length > 0 && (
+                            <div className="pt-4">
+                                <QuizPlayer
+                                    key={quizRunKey}
+                                    questions={quizQuestions}
+                                    onComplete={handleQuizComplete}
+                                />
+                            </div>
+                        )}
+
+                        {showRetryPrompt && firstAttemptScore !== null && (
+                            <div className="mt-4 space-y-3 rounded-lg border border-dashed p-4 bg-muted/40">
+                                <p className="text-sm font-medium">
+                                    You scored {firstAttemptScore}% on your first try.
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    You have unlocked one retry for this validation. We'll treat it as 5 extra minutes of study time.
+                                    If you score at least 80% on the retry, you get full points. If not, the session will complete with half points.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            setUsedRetry(true);
+                                            setShowRetryPrompt(false);
+                                            setQuizRunKey((prev) => prev + 1);
+                                        }}
+                                    >
+                                        Retry Quiz
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
