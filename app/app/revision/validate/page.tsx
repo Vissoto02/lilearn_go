@@ -429,9 +429,14 @@ function ValidationContent() {
                                         </span>
                                     </div>
                                 </div>
-                                <Button size="sm" onClick={() => handleStartQuiz(quiz.id)} className="gap-1.5">
+                                <Button
+                                    size="sm"
+                                    onClick={() => handleStartQuiz(quiz.id)}
+                                    className="gap-1.5"
+                                    disabled={!!activeQuizId || showRetryPrompt || validating}
+                                >
                                     <Target className="h-4 w-4" />
-                                    Take Quiz
+                                    {activeQuizId || showRetryPrompt ? 'In Progress' : 'Take Quiz'}
                                 </Button>
                             </div>
                         ))}
