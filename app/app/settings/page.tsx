@@ -37,20 +37,11 @@ import {
     Loader2,
     Save,
     Sparkles,
+    Lock,
+    Key,
 } from 'lucide-react';
 
-const TIMEZONES = [
-    'UTC',
-    'America/New_York',
-    'America/Los_Angeles',
-    'America/Chicago',
-    'Europe/London',
-    'Europe/Paris',
-    'Asia/Tokyo',
-    'Asia/Shanghai',
-    'Asia/Singapore',
-    'Australia/Sydney',
-];
+const MALAYSIA_TIMEZONE = 'Asia/Kuala_Lumpur';
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -62,8 +53,12 @@ export default function SettingsPage() {
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [timezone, setTimezone] = useState('UTC');
     const [aiInsightEnabled, setAiInsightEnabled] = useState(false);
+
+    // Password change state
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [updatingPassword, setUpdatingPassword] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -84,7 +79,6 @@ export default function SettingsPage() {
 
             if (profile) {
                 setName(profile.name || '');
-                setTimezone(profile.timezone || 'UTC');
             }
 
             // Fetch AI Insight enabled setting
@@ -114,7 +108,7 @@ export default function SettingsPage() {
             .from('profiles')
             .update({
                 name: name.trim(),
-                timezone,
+                timezone: MALAYSIA_TIMEZONE,
             })
             .eq('id', user.id);
 
@@ -216,6 +210,51 @@ export default function SettingsPage() {
         setExporting(false);
     };
 
+    const handleUpdatePassword = async () => {
+        if (!newPassword) return;
+        
+        if (newPassword.length < 6) {
+            toast({
+                title: 'Password too short',
+                description: 'Password must be at least 6 characters.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            toast({
+                title: 'Passwords mismatch',
+                description: 'Confirm password does not match.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setUpdatingPassword(true);
+        const supabase = createClient();
+        
+        const { error } = await supabase.auth.updateUser({
+            password: newPassword
+        });
+
+        if (error) {
+            toast({
+                title: 'Error',
+                description: error.message,
+                variant: 'destructive',
+            });
+        } else {
+            toast({
+                title: 'Password updated',
+                description: 'Your password has been changed successfully.',
+            });
+            setNewPassword('');
+            setConfirmPassword('');
+        }
+        setUpdatingPassword(false);
+    };
+
     const handleDeleteAccount = async () => {
         setDeleting(true);
         const supabase = createClient();
@@ -280,21 +319,6 @@ export default function SettingsPage() {
                             Email cannot be changed
                         </p>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="timezone">Timezone</Label>
-                        <Select value={timezone} onValueChange={setTimezone}>
-                            <SelectTrigger id="timezone">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {TIMEZONES.map((tz) => (
-                                    <SelectItem key={tz} value={tz}>
-                                        {tz}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
                     <Button onClick={handleSave} disabled={saving}>
                         {saving ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -302,6 +326,51 @@ export default function SettingsPage() {
                             <Save className="mr-2 h-4 w-4" />
                         )}
                         Save Changes
+                    </Button>
+                </CardContent>
+            </Card>
+
+            {/* Security Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Lock className="h-5 w-5" />
+                        Security
+                    </CardTitle>
+                    <CardDescription>
+                        Update your password and secure your account
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-password">New Password</Label>
+                            <Input
+                                id="new-password"
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Min 6 characters"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirm-password">Confirm Password</Label>
+                            <Input
+                                id="confirm-password"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="Repeat new password"
+                            />
+                        </div>
+                    </div>
+                    <Button onClick={handleUpdatePassword} disabled={updatingPassword || !newPassword}>
+                        {updatingPassword ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Key className="mr-2 h-4 w-4" />
+                        )}
+                        Change Password
                     </Button>
                 </CardContent>
             </Card>

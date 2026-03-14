@@ -76,12 +76,7 @@ export function Sidebar({ className }: SidebarProps) {
                 })}
             </nav>
 
-            {/* Footer */}
-            <div className="border-t border-border p-4">
-                <p className="text-xs text-muted-foreground">
-                    © 2024 LiLearn
-                </p>
-            </div>
+
         </aside>
     );
 }

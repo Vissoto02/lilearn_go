@@ -207,9 +207,7 @@ export default function LandingPage() {
               </div>
               <span className="font-semibold">LiLearn</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              © 2024 LiLearn. All rights reserved.
-            </p>
+
           </div>
         </div>
       </footer>
