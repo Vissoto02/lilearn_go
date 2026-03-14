@@ -99,12 +99,18 @@ export interface PlanTask {
     created_at: string;
 }
 
+export type StudyType = 'revision' | 'practice_quiz' | 'notes_review' | 'assignment';
+
 export interface Habit {
     id: string;
     user_id: string;
     date: string; // YYYY-MM-DD format
     studied_minutes: number;
     checkin: boolean;
+    study_type: StudyType | null;
+    subject: string | null;
+    topic: string | null;
+    note: string | null;
     created_at: string;
 }
 

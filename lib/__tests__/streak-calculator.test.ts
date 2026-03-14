@@ -18,6 +18,10 @@ function createHabit(
         date: formatDate(date),
         studied_minutes: minutes,
         checkin,
+        study_type: null,
+        subject: null,
+        topic: null,
+        note: null,
         created_at: date.toISOString(),
     };
 }
