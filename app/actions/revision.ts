@@ -9,7 +9,7 @@ import {
     isWeakSubject,
     THRESHOLDS,
 } from '@/lib/gamification';
-import type { RevisionSession, UserStats, LeaderboardEntry } from '@/lib/types';
+import type { RevisionSession, UserStats, LeaderboardEntry, UserTitle } from '@/lib/types';
 
 // ============================================================================
 // GET CURRENT ACTIVE STUDY BLOCK
@@ -561,7 +561,96 @@ export async function getLeaderboard(period: 'daily' | 'weekly' | 'all_time'): P
         return { entries: [], error: error.message };
     }
 
-    return { entries: (data || []) as LeaderboardEntry[] };
+    // ========================================================================
+    // MOCK USERS FOR PRESENTATION
+    // These users make the leaderboard look active even with few real users
+    // ========================================================================
+    const mockUsers: LeaderboardEntry[] = [
+        {
+            user_id: 'bot-1',
+            display_name: 'Lim Wei Keat',
+            total_points: period === 'all_time' ? 3250 : period === 'weekly' ? 520 : 150,
+            title: 'Study Master' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-2',
+            display_name: 'Nurul Aisyah',
+            total_points: period === 'all_time' ? 2840 : period === 'weekly' ? 480 : 130,
+            title: 'Study Master' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-3',
+            display_name: 'Tan Kah Hong',
+            total_points: period === 'all_time' ? 2150 : period === 'weekly' ? 350 : 90,
+            title: 'Study Master' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-4',
+            display_name: 'Nurul Izzah',
+            total_points: period === 'all_time' ? 1820 : period === 'weekly' ? 280 : 70,
+            title: 'Study Master' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-5',
+            display_name: 'Mohd Firdaus',
+            total_points: period === 'all_time' ? 1560 : period === 'weekly' ? 210 : 0,
+            title: 'Study Master' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-6',
+            display_name: 'Tan Mei Ling',
+            total_points: period === 'all_time' ? 1240 : period === 'weekly' ? 180 : 40,
+            title: 'Scholar' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-7',
+            display_name: 'Khairul Anwar',
+            total_points: period === 'all_time' ? 980 : period === 'weekly' ? 120 : 0,
+            title: 'Scholar' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-8',
+            display_name: 'Chong Jia Hao',
+            total_points: period === 'all_time' ? 750 : period === 'weekly' ? 90 : 30,
+            title: 'Scholar' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-9',
+            display_name: 'Low Xin Yi',
+            total_points: period === 'all_time' ? 420 : period === 'weekly' ? 50 : 0,
+            title: 'Amateur' as UserTitle,
+            rank: 0
+        },
+        {
+            user_id: 'bot-10',
+            display_name: 'Siti Aminah',
+            total_points: period === 'all_time' ? 290 : period === 'weekly' ? 0 : 0,
+            title: 'Amateur' as UserTitle,
+            rank: 0
+        }
+    ].filter(bot => bot.total_points > 0);
+
+    // Merge real data with mock data
+    const combinedEntries = [...(data || []) as LeaderboardEntry[], ...mockUsers];
+
+    // Re-rank based on points
+    const sortedEntries = combinedEntries.sort((a, b) => b.total_points - a.total_points);
+
+    // Assign new ranks
+    const finalEntries = sortedEntries.map((entry, index) => ({
+        ...entry,
+        rank: index + 1
+    }));
+
+    return { entries: finalEntries };
 }
 
 // ============================================================================
