@@ -726,21 +726,21 @@ export default function LandingPage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               <TestimonialCard
                 quote="LiLearn's quizzes actually pinpointed my weak areas in Organic Chemistry. My scores went from 55% to 82% in just two weeks."
-                name="Aisyah Rahman"
-                role="Medical Student"
-                avatar="A"
+                name="Yee Chin Chieh"
+                role="Information Technology Student"
+                avatar="Y"
               />
               <TestimonialCard
                 quote="The adaptive planner is a game-changer. It adjusts my study schedule based on how I actually perform, not just guessing."
-                name="Sarah Chen"
-                role="Engineering Student"
-                avatar="S"
+                name="Ng Yang Lian"
+                role="Information Technology Student"
+                avatar="N"
               />
               <TestimonialCard
                 quote="I love the streak tracking and leaderboard. It makes studying competitive in a healthy way. My study time went up 3x."
-                name="Muhammad Iqbal"
-                role="Computer Science Student"
-                avatar="M"
+                name="Aloysius Lim"
+                role="Information Technology Student"
+                avatar="A"
               />
             </div>
           </div>

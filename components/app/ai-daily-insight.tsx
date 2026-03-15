@@ -38,7 +38,7 @@ export function AIDailyInsight() {
     }, []);
 
     const openChat = () => {
-        const message = `Please explain my AI daily study insight. \n\nMy weakest subject is ${data?.weak_subject}, specifically the topic "${data?.weak_topic}". \n\nMy accuracy is ${data?.accuracy}%. \n\nYour recommendation was: "${data?.message}"\n\nWhat should I do to improve?`;
+        const message = `Please explain my AI daily study insight. \n\nMy weakest subject is ${data?.weak_subject}, specifically the topic "${data?.weak_topic}". \n\nMy accuracy is ${data?.accuracy}%. \n\nYour recommendation was: "${data?.message}"\n\nWhat should I do to improve? Please do not offer to generate a study plan in your response.`;
 
         window.dispatchEvent(
             new CustomEvent("openLiLearnChat", {
