@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 
 export function LoginForm({
   className,
@@ -39,7 +40,7 @@ export function LoginForm({
       });
       if (error) throw error;
       // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
+      router.push("/app");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -49,6 +50,13 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Link
+        href="/"
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors max-w-fit"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to landing page
+      </Link>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>

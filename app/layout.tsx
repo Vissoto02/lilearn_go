@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, DM_Sans } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { ChatLauncher } from "@/components/chat/chat-launcher";
@@ -38,6 +38,13 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const dmSans = DM_Sans({
+  variable: "--font-display",
+  display: "swap",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -45,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${inter.className} ${dmSans.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

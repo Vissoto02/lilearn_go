@@ -2,68 +2,111 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   LILEARN DESIGN SYSTEM — Brand Colors & Tokens
+   Inspired by poster: purple gradients, lavender, soft academic-tech
+   ============================================================================ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    /* Core brand purple spectrum */
+    --background: 270 20% 99%;
+    --foreground: 263 50% 12%;
+
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 263 50% 12%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 225 71% 60%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 225 71% 60%;
-    --chart-1: 225 71% 60%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.75rem;
-    --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
+    --popover-foreground: 263 50% 12%;
+
+    --primary: 263 70% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 265 60% 96%;
+    --secondary-foreground: 263 50% 12%;
+
+    --muted: 268 30% 96%;
+    --muted-foreground: 263 15% 46%;
+
+    --accent: 265 40% 94%;
+    --accent-foreground: 263 50% 12%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 265 30% 91%;
+    --input: 265 30% 91%;
+    --ring: 263 70% 58%;
+
+    /* Chart palette in brand spectrum */
+    --chart-1: 263 70% 58%;
+    --chart-2: 244 60% 62%;
+    --chart-3: 226 70% 55%;
+    --chart-4: 280 55% 60%;
+    --chart-5: 200 80% 55%;
+
+    --radius: 1rem;
+
+    --success: 152 68% 40%;
+    --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 222.2 47.4% 11.2%;
+    --warning-foreground: 263 50% 12%;
+
+    /* LiLearn brand tokens */
+    --li-purple: 263 70% 58%;
+    --li-purple-light: 265 80% 82%;
+    --li-lavender: 265 90% 95%;
+    --li-indigo: 244 60% 62%;
+    --li-sky: 213 90% 76%;
+    --li-glow: 263 80% 70%;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 224 76% 65%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 213 31% 91%;
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 216 34% 17%;
-    --accent-foreground: 213 31% 91%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 213 31% 91%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 224 76% 65%;
-    --chart-1: 224 76% 65%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --success: 142 76% 36%;
-    --success-foreground: 213 31% 91%;
+    --background: 265 50% 6%;
+    --foreground: 265 20% 92%;
+
+    --card: 265 40% 10%;
+    --card-foreground: 265 20% 92%;
+
+    --popover: 265 40% 10%;
+    --popover-foreground: 265 20% 92%;
+
+    --primary: 263 70% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 265 30% 14%;
+    --secondary-foreground: 265 20% 92%;
+
+    --muted: 265 30% 13%;
+    --muted-foreground: 265 15% 55%;
+
+    --accent: 265 25% 16%;
+    --accent-foreground: 265 20% 92%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 265 20% 92%;
+
+    --border: 265 25% 18%;
+    --input: 265 25% 18%;
+    --ring: 263 70% 65%;
+
+    --chart-1: 263 70% 65%;
+    --chart-2: 244 60% 68%;
+    --chart-3: 226 70% 60%;
+    --chart-4: 280 55% 65%;
+    --chart-5: 200 80% 60%;
+
+    --success: 152 68% 40%;
+    --success-foreground: 265 20% 92%;
     --warning: 38 92% 50%;
-    --warning-foreground: 222.2 47.4% 11.2%;
+    --warning-foreground: 263 50% 12%;
+
+    --li-purple: 263 70% 65%;
+    --li-purple-light: 265 60% 40%;
+    --li-lavender: 265 30% 15%;
+    --li-indigo: 244 60% 68%;
+    --li-sky: 213 80% 65%;
+    --li-glow: 263 80% 55%;
   }
 }
 
@@ -74,10 +117,19 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" 32;
+  }
+
+  ::selection {
+    background: hsl(263 70% 58% / 0.2);
   }
 }
 
-/* Typography scale */
+/* ============================================================================
+   TYPOGRAPHY — Brand type scale
+   ============================================================================ */
+
 @layer utilities {
   .text-h1 {
     @apply text-3xl font-bold tracking-tight sm:text-4xl;
@@ -98,78 +150,237 @@
   .text-caption {
     @apply text-xs text-muted-foreground;
   }
+
+  /* Gradient text — brand signature */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--li-purple)), hsl(var(--li-indigo)), hsl(var(--li-sky)));
+  }
+
+  .text-gradient-purple {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(263 70% 58%), hsl(280 65% 55%), hsl(244 60% 62%));
+  }
 }
 
-/* Animation utilities */
+/* ============================================================================
+   GLASSMORPHISM — Frosted glass cards & surfaces
+   ============================================================================ */
+
+@layer utilities {
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid hsl(var(--border) / 0.4);
+  }
+
+  .glass-strong {
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .glass-purple {
+    background: hsl(var(--li-lavender) / 0.5);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(var(--li-purple-light) / 0.3);
+  }
+}
+
+/* ============================================================================
+   GLOW & SHADOW — Brand-colored elevation
+   ============================================================================ */
+
+@layer utilities {
+  .glow-sm {
+    box-shadow: 0 0 20px -5px hsl(var(--li-glow) / 0.15);
+  }
+
+  .glow-md {
+    box-shadow: 0 0 40px -10px hsl(var(--li-glow) / 0.2);
+  }
+
+  .glow-lg {
+    box-shadow: 0 0 60px -15px hsl(var(--li-glow) / 0.25);
+  }
+
+  .shadow-brand {
+    box-shadow:
+      0 1px 3px hsl(var(--li-purple) / 0.06),
+      0 4px 16px hsl(var(--li-purple) / 0.08);
+  }
+
+  .shadow-brand-lg {
+    box-shadow:
+      0 4px 12px hsl(var(--li-purple) / 0.08),
+      0 16px 48px hsl(var(--li-purple) / 0.12);
+  }
+}
+
+/* ============================================================================
+   ANIMATIONS — Premium motion design
+   ============================================================================ */
+
 @layer utilities {
   .animate-in {
-    animation: animateIn 0.2s ease-out;
+    animation: animateIn 0.3s ease-out;
   }
 
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.4s ease-out;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.4s ease-out;
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
+    animation: scaleIn 0.3s ease-out;
   }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 7s ease-in-out 2s infinite;
+  }
+
+  .animate-glow-pulse {
+    animation: glowPulse 3s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  .animate-gradient-shift {
+    animation: gradientShift 8s ease infinite;
+    background-size: 200% 200%;
+  }
+
+  .animate-reveal-up {
+    animation: revealUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-reveal-left {
+    animation: revealLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-reveal-right {
+    animation: revealRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-spin-slow {
+    animation: spin 20s linear infinite;
+  }
+
+  .animation-delay-100 { animation-delay: 100ms; }
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-500 { animation-delay: 500ms; }
+  .animation-delay-700 { animation-delay: 700ms; }
+  .animation-delay-1000 { animation-delay: 1000ms; }
 }
 
 @keyframes animateIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(1deg); }
+  66% { transform: translateY(6px) rotate(-1deg); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px -5px hsl(var(--li-glow) / 0.15); }
+  50% { box-shadow: 0 0 40px -5px hsl(var(--li-glow) / 0.3); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes revealLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes revealRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   GRADIENT MESH — Organic background patterns
+   ============================================================================ */
+
+@layer utilities {
+  .gradient-mesh {
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 0%, hsl(var(--li-lavender) / 0.6) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 70% at 80% 20%, hsl(var(--li-sky) / 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 50% 80%, hsl(var(--li-purple-light) / 0.2) 0%, transparent 60%),
+      hsl(var(--background));
   }
 
-  to {
-    opacity: 1;
-    transform: scale(1);
+  .gradient-mesh-dark {
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 0%, hsl(var(--li-purple) / 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 70% at 80% 20%, hsl(var(--li-indigo) / 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 50% 80%, hsl(var(--li-sky) / 0.05) 0%, transparent 60%),
+      hsl(var(--background));
   }
 }
 
-/* Scrollbar styling */
+/* ============================================================================
+   SCROLLBAR — Brand-colored custom scrollbar
+   ============================================================================ */
+
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-color: hsl(var(--li-purple-light) / 0.4) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -182,14 +393,50 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border));
+    background-color: hsl(var(--li-purple-light) / 0.4);
     border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--li-purple) / 0.5);
   }
 }
 
-/* Focus ring consistency */
+/* ============================================================================
+   FOCUS RING — Accessible and branded
+   ============================================================================ */
+
 @layer utilities {
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+/* ============================================================================
+   BRAND SHAPES — Decorative SVG-like shapes via CSS
+   ============================================================================ */
+
+@layer utilities {
+  .brand-orb {
+    @apply absolute rounded-full blur-3xl opacity-30 pointer-events-none;
+    background: radial-gradient(circle, hsl(var(--li-purple)) 0%, hsl(var(--li-sky) / 0.5) 50%, transparent 70%);
+  }
+
+  .brand-orb-sm {
+    @apply brand-orb;
+    width: 200px;
+    height: 200px;
+  }
+
+  .brand-orb-md {
+    @apply brand-orb;
+    width: 400px;
+    height: 400px;
+  }
+
+  .brand-orb-lg {
+    @apply brand-orb;
+    width: 600px;
+    height: 600px;
   }
 }

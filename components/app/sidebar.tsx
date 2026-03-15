@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -10,7 +11,6 @@ import {
     Target,
     Upload,
     Settings,
-    GraduationCap,
     Swords,
     Medal,
 } from 'lucide-react';
@@ -42,11 +42,15 @@ export function Sidebar({ className }: SidebarProps) {
             )}
         >
             {/* Logo */}
-            <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                    <GraduationCap className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-semibold">LiLearn</span>
+            <div className="flex h-16 items-center gap-3 border-b border-border px-6">
+                <Image
+                    src="/logo_only.png"
+                    alt="LiLearn"
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                />
+                <span className="text-xl font-semibold tracking-tight">LiLearn</span>
             </div>
 
             {/* Navigation */}
