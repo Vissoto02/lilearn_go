@@ -9,8 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
     FileText,
-    FileType,
-    Presentation,
     CheckCircle2,
     XCircle,
     Loader2,
@@ -30,12 +28,6 @@ interface UploadItemProps {
 function getFileIcon(mimeType: string) {
     if (mimeType === 'application/pdf') {
         return <FileText className="h-5 w-5 text-red-500" />;
-    }
-    if (mimeType.includes('wordprocessingml')) {
-        return <FileType className="h-5 w-5 text-blue-500" />;
-    }
-    if (mimeType.includes('presentationml')) {
-        return <Presentation className="h-5 w-5 text-orange-500" />;
     }
     return <FileText className="h-5 w-5" />;
 }

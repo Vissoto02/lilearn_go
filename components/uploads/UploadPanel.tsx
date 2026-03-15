@@ -35,8 +35,6 @@ import {
     FileUp,
     Loader2,
     FileText,
-    FileType,
-    Presentation,
     AlertCircle,
     Sparkles,
 } from 'lucide-react';
@@ -105,7 +103,7 @@ export function UploadPanel({ className }: UploadPanelProps) {
     const validateFile = (file: File): string | null => {
         const ext = '.' + file.name.split('.').pop()?.toLowerCase();
         if (!SUPPORTED_EXTENSIONS[ext]) {
-            return `Unsupported file type. Please upload PDF, DOCX, or PPTX.`;
+            return `Unsupported file type. Please upload a PDF.`;
         }
         if (file.size > MAX_FILE_SIZE_BYTES) {
             return `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
@@ -294,19 +292,13 @@ export function UploadPanel({ className }: UploadPanelProps) {
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
                             <FileText className="h-6 w-6 text-red-500" />
                         </div>
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                            <FileType className="h-6 w-6 text-blue-500" />
-                        </div>
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-                            <Presentation className="h-6 w-6 text-orange-500" />
-                        </div>
                     </div>
 
                     <p className="text-center font-medium">
                         {selectedFile ? selectedFile.name : 'Drop a file here or click to browse'}
                     </p>
                     <p className="mt-1 text-center text-sm text-muted-foreground">
-                        PDF, DOCX, PPTX • Max {MAX_FILE_SIZE_LABEL}
+                        PDF • Max {MAX_FILE_SIZE_LABEL}
                     </p>
                 </div>
 

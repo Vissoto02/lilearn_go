@@ -25,11 +25,7 @@ const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
 // ============================================================================
 
 function isValidMimeType(mimeType: string): mimeType is SupportedMimeType {
-    return [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    ].includes(mimeType);
+    return mimeType === 'application/pdf';
 }
 
 function validateFileSize(sizeBytes: number): boolean {

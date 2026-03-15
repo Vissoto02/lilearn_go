@@ -3,9 +3,7 @@
 export type UploadStatus = 'pending' | 'uploading' | 'processing' | 'completed' | 'failed';
 
 export type SupportedMimeType =
-    | 'application/pdf'
-    | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    | 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    | 'application/pdf';
 
 export interface QuizGenerationOptions {
     difficulty: 'easy' | 'medium' | 'hard';
@@ -75,14 +73,10 @@ export interface N8nWebhookPayload {
 // Supported file extensions
 export const SUPPORTED_EXTENSIONS: Record<string, SupportedMimeType> = {
     '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 };
 
 export const MIME_TYPE_LABELS: Record<SupportedMimeType, string> = {
     'application/pdf': 'PDF',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
 };
 
 // Limits
