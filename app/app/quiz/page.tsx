@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/app/page-header';
 import { QuizPlayer, QuizResult } from '@/components/app/quiz-player';
 import { EmptyState } from '@/components/app/empty-state';
 import { LoadingSkeleton } from '@/components/app/loading-skeleton';
+import { UploadPanel } from '@/components/uploads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -746,15 +747,14 @@ function QuizPageContent() {
                 description="Test your knowledge with AI-generated quizzes"
             />
 
+            {/* Upload & Generate Quiz Section */}
+            <UploadPanel />
+
             {quizzes.length === 0 ? (
                 <EmptyState
                     icon={BookOpen}
                     title="No quizzes yet"
-                    description="Upload a file on the Dashboard to generate your first quiz with AI"
-                    action={{
-                        label: 'Go to Dashboard',
-                        href: '/app',
-                    }}
+                    description="Upload a file above to generate your first quiz with AI"
                 />
             ) : (
                 <>

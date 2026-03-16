@@ -1,12 +1,10 @@
-import { Suspense } from 'react';
+
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/page-header';
 import { StatCard } from '@/components/app/stat-card';
 import { EmptyState } from '@/components/app/empty-state';
-import { LoadingSkeleton } from '@/components/app/loading-skeleton';
 import { DashboardCalendar } from '@/components/app/dashboard-calendar';
-import { DashboardUpload } from '@/components/app/dashboard-upload';
 import { AIDailyInsight } from '@/components/app/ai-daily-insight';
 import { WeeklyTimetableGrid } from '@/components/planner/WeeklyTimetableGrid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,10 +117,6 @@ export default async function DashboardPage() {
                 description={`Welcome back! Here's your study overview.`}
             />
 
-            {/* Upload & Generate Quiz Section */}
-            <Suspense fallback={<LoadingSkeleton />}>
-                <DashboardUpload />
-            </Suspense>
 
             <AIDailyInsight />
 
