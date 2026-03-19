@@ -82,4 +82,4 @@ n8n:parse time tabile
 This project is licensed under the MIT License 
 
 
-Built with ❤️ by [Vissoto02](https://github.com/vissoto02)
+Built with ❤️ by [Vissoto02](https://github.com/vissoto02) and [Lilian0603](https://github.com/Lilian0603)
